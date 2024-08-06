@@ -1,5 +1,10 @@
 
 # extract features via librosa
+import os
+from tqdm import tqdm
+import multiprocess
+from pathlib import Path
+
 import librosa
 import numpy as np
 
@@ -11,7 +16,7 @@ class FeatureExtractor:
         y, sr = librosa.load(audio_path, sr=self.sr)
         
         # # extract mfcc
-        # mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
 
         # # extract mel
         # mel = librosa.feature.melspectrogram(y=y, sr=sr)
@@ -31,6 +36,7 @@ class FeatureExtractor:
 
         # extract pitch(f0) from time series
         f0, voiced_flag, voiced_probs = librosa.pyin(y,
+                                                     sr = sr,
                                                      fmin=librosa.note_to_hz('C2'),
                                                      fmax=librosa.note_to_hz('C7'),
                                                      fill_na=0.0)
@@ -39,10 +45,10 @@ class FeatureExtractor:
         voiced_probs = voiced_probs[np.newaxis, :]
 
 
-        features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
+        pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
         
-        print(features.shape)
-        return features
+        featurelist = ['pyin_features', 'mfcc']
+        return (pyin_features, mfcc), featurelist
 
         # # extract zero crossing rate
         # zcr = librosa.feature.zero_crossing_rate(y=y)
@@ -60,14 +66,38 @@ class FeatureExtractor:
         # print(features.shape)
         
         # return features
+        
     
-import os
-import re
-from pprint import pprint
-from tqdm import tqdm
-import glob
-import multiprocess
-from pathlib import Path
+    def process_file(self, args):
+        wav_file, extractor = args
+        dir_path, filename = os.path.split(wav_file)
+        # _, dir_name = os.path.split(dir_path)
+        
+        try:
+            #get group id from filename
+            group_id = filename.split('_')[0][-4:-2]
+            if group_id not in ['11', '21', '22']:
+                raise ValueError(f"Invalid group id {group_id}")
+            
+            features, featurelist = extractor.extract_features(audio_path=wav_file)
+            features_folder_path = f'{dir_path}-features'
+            if not os.path.exists(features_folder_path):
+                os.makedirs(features_folder_path)
+
+            for f in featurelist:
+                feature_subfolder_path = os.path.join(features_folder_path, f)
+                if not os.path.exists(feature_subfolder_path):
+                    os.makedirs(feature_subfolder_path)
+                    
+                feature_file_path = os.path.join(feature_subfolder_path, os.path.basename(wav_file) + '_' + f '.npy')
+                np.save(feature_file_path, features[featurelist.index(f)])
+
+            return group_id, features, f'Processed {wav_file}, extracted features: {str(featurelist)}'
+        except Exception as e:
+            return None, None, f"Error processing {wav_file}: {e}"
+    
+    
+
 
 base_folder_path = Path('/data/storage025/wavs_single_channel')
 
@@ -81,30 +111,6 @@ EL = [[], [], []]
 PN = [[], [], []]
 all3 = [[], [], []]
 
-def process_file(args):
-    wav_file, extractor = args
-    dir_path, filename = os.path.split(wav_file)
-    # _, dir_name = os.path.split(dir_path)
-    
-    try:
-        #get group id from filename
-        group_id = filename.split('_')[0][-4:-2]
-
-        feature = extractor.extract_features(audio_path=wav_file)
-        if group_id not in ['11', '21', '22']:
-            raise ValueError(f"Invalid group id {group_id}")
-        
-        features_folder_path = f'{dir_path}-features-pyin'
-        if not os.path.exists(features_folder_path):
-            os.makedirs(features_folder_path)
-
-        feature_file_path = os.path.join(features_folder_path, os.path.basename(wav_file) + '.npy')
-        np.save(feature_file_path, feature)  
-
-        return group_id, feature, f'Processed {wav_file}'
-    except Exception as e:
-        return None, None, f"Error processing {wav_file}: {e}"
-    
 
 def add2list(group_id, feature, ls):
     if group_id == '11':
@@ -120,9 +126,8 @@ def add2list(group_id, feature, ls):
 feature_extractor = FeatureExtractor()
 
 # load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
-for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
-# for folder in ['test']:
-
+# for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
+for folder in ['test']:
     folder_path = base_folder_path / folder
     wav_files = list(folder_path.glob('*.wav'))
     print(f'Processing {folder} folder...')
@@ -131,10 +136,11 @@ for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     if folder == 'test':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool(1) as pool:
-            results = list(tqdm(pool.imap(process_file, args), total=len(wav_files)))
-            for group_id, feature, message in results:
-                if feature is not None:
-                    add2list(group_id, feature, all3)
+            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
+            for group_id, features, message in results:
+                if features is not None:
+                    add2list(group_id, features, all3)
+                    print(message)
                 else:
                     print(message)
         for sublist in all3:
@@ -144,7 +150,7 @@ for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     if folder == 'BoundaryTone':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(process_file, args), total=len(wav_files)))
+            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
             for group_id, feature, message in results:
                 if feature is not None:
                     add2list(group_id, feature, BD)            
@@ -157,7 +163,7 @@ for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     elif folder == 'EarlyLate':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(process_file, args), total=len(wav_files)))
+            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
             for group_id, feature, message in results:
                 if feature is not None:
                     add2list(group_id, feature, EL)
@@ -170,7 +176,7 @@ for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     elif folder == 'PictureNaming':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(process_file, args), total=len(wav_files)))
+            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
             for group_id, feature, message in results:
                 if feature is not None:
                     add2list(group_id, feature, PN)
