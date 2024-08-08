@@ -7,6 +7,7 @@ from pathlib import Path
 
 import librosa
 import numpy as np
+import webrtcvad
 
 class FeatureExtractor:
     def __init__(self, sr=44100):
@@ -34,21 +35,22 @@ class FeatureExtractor:
         # spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.99)
         # spec_rolloff_min = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.01)
 
-        # extract pitch(f0) from time series
-        f0, voiced_flag, voiced_probs = librosa.pyin(y,
-                                                     sr = sr,
-                                                     fmin=librosa.note_to_hz('C2'),
-                                                     fmax=librosa.note_to_hz('C7'),
-                                                     fill_na=0.0)
-        f0 = f0[np.newaxis, :]
-        voiced_flag = voiced_flag[np.newaxis, :]
-        voiced_probs = voiced_probs[np.newaxis, :]
+        # # extract pitch(f0) from time series
+        # f0, voiced_flag, voiced_probs = librosa.pyin(y,
+        #                                              sr = sr,
+        #                                              fmin=librosa.note_to_hz('C2'),
+        #                                              fmax=librosa.note_to_hz('C7'),
+        #                                              fill_na=0.0)
+        # f0 = f0[np.newaxis, :]
+        # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
 
+        vad1 = self.get_vad(y, sr, mode=1)
+        vad2 = self.get_vad(y, sr, mode=2)
+        vad3 = self.get_vad(y, sr, mode=3)
 
-        pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
         
-        featurelist = ['pyin_features', 'mfcc']
-        return (pyin_features, mfcc), featurelist
+        featurelist = ['vad1', 'vad2', 'vad3']
+        return (vad1, vad2, vad3), featurelist
 
         # # extract zero crossing rate
         # zcr = librosa.feature.zero_crossing_rate(y=y)
@@ -66,7 +68,31 @@ class FeatureExtractor:
         # print(features.shape)
         
         # return features
-        
+    
+    def get_vad(self, y, sr, mode=2):
+        vad = webrtcvad.Vad()
+        vad.set_mode(mode)
+
+        sample_rate = 16000
+        # downsampling from 44100 to 16000 and framing
+        y_16k = librosa.resample(y, orig_sr=sr, target_sr=sample_rate)
+        # transfer to bytes
+        y_16k = np.int16(y_16k * 32768).tobytes()
+        # calculate bytes of 10ms in 16000Hz
+        step = int(sample_rate * 0.01) * 2
+
+        # assert error if len(y_16k) < step
+        assert len(y_16k) >= step
+
+        # loop the bytes in 10ms frames
+        frames = []
+        for i in range(0, len(y_16k) - step, step):
+            frames.append(y_16k[i:i+step])
+
+        vadres = []
+        for i, frame in enumerate(frames):
+            vadres.append(vad.is_speech(frame, sample_rate))
+        return vadres
     
     def process_file(self, args):
         wav_file, extractor = args
@@ -89,7 +115,7 @@ class FeatureExtractor:
                 if not os.path.exists(feature_subfolder_path):
                     os.makedirs(feature_subfolder_path)
                     
-                feature_file_path = os.path.join(feature_subfolder_path, os.path.basename(wav_file) + '_' + f '.npy')
+                feature_file_path = os.path.join(feature_subfolder_path, os.path.basename(wav_file) + '_' + f + '.npy')
                 np.save(feature_file_path, features[featurelist.index(f)])
 
             return group_id, features, f'Processed {wav_file}, extracted features: {str(featurelist)}'
@@ -127,7 +153,7 @@ feature_extractor = FeatureExtractor()
 
 # load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
 # for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
-for folder in ['test']:
+for folder in ['EarlyLate']:
     folder_path = base_folder_path / folder
     wav_files = list(folder_path.glob('*.wav'))
     print(f'Processing {folder} folder...')
@@ -151,35 +177,40 @@ for folder in ['test']:
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
             results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, feature, message in results:
-                if feature is not None:
-                    add2list(group_id, feature, BD)            
+            for group_id, features, message in results:
+                if features is not None:
+                    add2list(group_id, features, BD)            
+                    print(message)
                 else:
                     print(message)
         # for wav_file in tqdm(wav_files):
         #     process_file(wav_file, feature_extractor, BD)
         for sublist in BD:
             print(len(sublist))
+            
     elif folder == 'EarlyLate':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
             results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, feature, message in results:
-                if feature is not None:
-                    add2list(group_id, feature, EL)
+            for group_id, features, message in results:
+                if features is not None:
+                    add2list(group_id, features, EL)
+                    print(message)
                 else:
                     print(message)
         # for wav_file in tqdm(wav_files):
         #     process_file(wav_file, feature_extractor, EL)
         for sublist in EL:
             print(len(sublist))
+            
     elif folder == 'PictureNaming':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
         with multiprocess.Pool() as pool:
             results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, feature, message in results:
-                if feature is not None:
-                    add2list(group_id, feature, PN)
+            for group_id, features, message in results:
+                if features is not None:
+                    add2list(group_id, features, PN)
+                    print(message)
                 else:
                     print(message)
         # for wav_file in tqdm(wav_files):
