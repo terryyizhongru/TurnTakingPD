@@ -17,7 +17,7 @@ class FeatureExtractor:
         y, sr = librosa.load(audio_path, sr=self.sr)
         
         # # extract mfcc
-        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+        # mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
 
         # # extract mel
         # mel = librosa.feature.melspectrogram(y=y, sr=sr)
@@ -35,22 +35,19 @@ class FeatureExtractor:
         # spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.99)
         # spec_rolloff_min = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.01)
 
-        # # extract pitch(f0) from time series
-        # f0, voiced_flag, voiced_probs = librosa.pyin(y,
-        #                                              sr = sr,
-        #                                              fmin=librosa.note_to_hz('C2'),
-        #                                              fmax=librosa.note_to_hz('C7'),
-        #                                              fill_na=0.0)
-        # f0 = f0[np.newaxis, :]
+        # extract pitch(f0) from time series
+        f0, voiced_flag, voiced_probs = librosa.pyin(y,
+                                                     sr = sr,
+                                                     fmin=librosa.note_to_hz('C2'),
+                                                     fmax=librosa.note_to_hz('C7'),
+                                                     fill_na=0.0)
+        f0 = f0[np.newaxis, :]
         # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
 
-        vad1 = self.get_vad(y, sr, mode=1)
-        vad2 = self.get_vad(y, sr, mode=2)
-        vad3 = self.get_vad(y, sr, mode=3)
 
         
-        featurelist = ['vad1', 'vad2', 'vad3']
-        return (vad1, vad2, vad3), featurelist
+        featurelist = ['f0']
+        return (f0), featurelist
 
         # # extract zero crossing rate
         # zcr = librosa.feature.zero_crossing_rate(y=y)
@@ -125,7 +122,7 @@ class FeatureExtractor:
     
 
 
-base_folder_path = Path('/data/storage025/wavs_single_channel')
+base_folder_path = Path('/data/storage025/wavs_single_channel_nosil/')
 
 # features_folder_path = f'{base_folder_path}-features'
 # if not os.path.exists(features_folder_path):
@@ -152,8 +149,8 @@ def add2list(group_id, feature, ls):
 feature_extractor = FeatureExtractor()
 
 # load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
-# for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
-for folder in ['EarlyLate']:
+for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
+#for folder in ['BoundaryTone', 'PictureNaming']:
     folder_path = base_folder_path / folder
     wav_files = list(folder_path.glob('*.wav'))
     print(f'Processing {folder} folder...')
