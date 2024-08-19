@@ -10,8 +10,11 @@ import numpy as np
 import webrtcvad
 
 class FeatureExtractor:
-    def __init__(self, sr=44100):
+    def __init__(self, sr=44100, frame_length=4096):
         self.sr = sr
+        self.frame_length = frame_length
+        self.hop_length = self.frame_length // 4
+
 
     def extract_features(self, audio_path):
         y, sr = librosa.load(audio_path, sr=self.sr)
@@ -40,14 +43,20 @@ class FeatureExtractor:
                                                      sr = sr,
                                                      fmin=librosa.note_to_hz('C2'),
                                                      fmax=librosa.note_to_hz('C7'),
+                                                     frame_length=self.frame_length,
+                                                     hop_length=self.hop_length,
                                                      fill_na=0.0)
-        f0 = f0[np.newaxis, :]
+        # f0 = f0[np.newaxis, :]
         # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
-
+    
+        energy_frames = np.array([
+            np.sum(np.abs(y[i:i+self.frame_length]**2))
+            for i in range(0, len(y), self.hop_length)
+        ])
 
         
-        featurelist = ['f0']
-        return (f0), featurelist
+        featurelist = ['f0-4096', 'energy']
+        return (f0, energy_frames), featurelist
 
         # # extract zero crossing rate
         # zcr = librosa.feature.zero_crossing_rate(y=y)
@@ -122,7 +131,7 @@ class FeatureExtractor:
     
 
 
-base_folder_path = Path('/data/storage025/wavs_single_channel_nosil/')
+base_folder_path = Path('/data/storage025/wavs_single_channel_normalized_nosil/')
 
 # features_folder_path = f'{base_folder_path}-features'
 # if not os.path.exists(features_folder_path):
@@ -156,19 +165,6 @@ for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     print(f'Processing {folder} folder...')
     print(f'Found {len(wav_files)} wav files')
 
-    if folder == 'test':
-        args = [(wav_file, feature_extractor) for wav_file in wav_files]
-        with multiprocess.Pool(1) as pool:
-            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, features, message in results:
-                if features is not None:
-                    add2list(group_id, features, all3)
-                    print(message)
-                else:
-                    print(message)
-        for sublist in all3:
-            print(len(sublist))
-    
 
     if folder == 'BoundaryTone':
         args = [(wav_file, feature_extractor) for wav_file in wav_files]
