@@ -10,7 +10,10 @@ del_list = '''1102
 
 del_list = [num.strip() for num in del_list.split("\n")]
 
-del_dir = "/scratch/yzhong/Turntaking/"	
+if len(sys.argv) != 2:
+    print("Usage: python del_participants_list.py [del_dir]")
+    sys.exit(1)
+del_dir = sys.argv[1]
 
 cnt = 0
 # delete all wav filesin del_dir contains the number 

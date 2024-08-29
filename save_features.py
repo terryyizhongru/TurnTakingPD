@@ -1,6 +1,7 @@
 
 # extract features via librosa
 import os
+import sys
 from tqdm import tqdm
 import multiprocess
 from pathlib import Path
@@ -43,8 +44,6 @@ class FeatureExtractor:
                                                      sr = sr,
                                                      fmin=librosa.note_to_hz('C2'),
                                                      fmax=librosa.note_to_hz('C7'),
-                                                     frame_length=self.frame_length,
-                                                     hop_length=self.hop_length,
                                                      fill_na=0.0)
         # f0 = f0[np.newaxis, :]
         # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
@@ -55,7 +54,7 @@ class FeatureExtractor:
         ])
 
         
-        featurelist = ['f0-4096', 'energy']
+        featurelist = ['f0', 'energy']
         return (f0, energy_frames), featurelist
 
         # # extract zero crossing rate
@@ -130,8 +129,10 @@ class FeatureExtractor:
     
     
 
-
-base_folder_path = Path('/data/storage025/wavs_single_channel_normalized_nosil/')
+if len(sys.argv) != 2:
+    print("Usage: python save_features.py [base_folder_path]")
+    sys.exit(1)
+base_folder_path = Path(sys.argv[1])
 
 # features_folder_path = f'{base_folder_path}-features'
 # if not os.path.exists(features_folder_path):

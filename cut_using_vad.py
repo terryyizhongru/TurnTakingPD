@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 
 import textgrid
 import numpy as np
@@ -27,11 +28,15 @@ def load_textgrid(file_path):
 
 model = load_silero_vad()
 
-folder = '/data/storage025/wavs_single_channel_normalized/'
-outdir = '/data/storage025/wavs_single_channel_nosil/'
+if len(sys.argv) != 2:
+    print("Usage: python cut_using_vad.py [folder]")
+    sys.exit(1)
 
-for subdir in ['BoundaryTone', 'PictureNaming']:
-    wavfolder = os.path.join(folder, subdir)
+folder = sys.argv[1]
+outdir = folder[:-1] + '_nosil' if folder.endswith('/') else folder + '_nosil'   
+
+for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
+    wavfolder = os.path.join(folder, subdir) if 'normalized' in folder else os.path.join(folder + '_normalized', subdir) 
     os.makedirs(wavfolder, exist_ok=True)
     wavoutfolder = os.path.join(outdir, subdir)
     os.makedirs(wavoutfolder, exist_ok=True)
@@ -72,10 +77,11 @@ for subdir in ['BoundaryTone', 'PictureNaming']:
             print(cnt_empty)
             continue
 
-        fn = fn.replace('wavs_single_channel_normalized', 'wavs_single_channel')
+        if 'normalized' not in folder:
+            fn = fn.replace('_normalized', '')
         outf = os.path.join(wavoutfolder, os.path.basename(fn))
 
-        # os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
+        os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
         clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
 
 
