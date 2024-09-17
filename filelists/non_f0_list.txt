@@ -57,3 +57,9 @@ subj-2106_trechter.png_1.wav_f0.npy
 subj-2121_rups.png_1.wav_f0.npy
 subj-2106_kaars.png_1.wav_f0.npy
 subj-2216_kompas.png_1.wav_f0.npy
+subj-1121_punaise_3obj_mbt_men.wav_1.wav_f0.npy
+subj-2216_naaimachine_3obj_mbt_zen.wav_1.wav_f0.npy
+subj-2112_bowlingbal_2obj_mbt_men.wav_1.wav_f0.npy
+subj-2112_sjaal_3obj_zbt_men.wav_1.wav_f0.npy
+subj-2120_knoop_2obj_mbt_men.wav_1.wav_f0.npy
+subj-2216_sigaret_2obj_mbt_men.wav_1.wav_f0.npy

@@ -32,14 +32,13 @@ if len(sys.argv) != 2:
     print("Usage: python cut_using_vad.py [folder]")
     sys.exit(1)
 
-folder = sys.argv[1]
-outdir = folder[:-1] + '_nosil' if folder.endswith('/') else folder + '_nosil'   
+folder = sys.argv[1][:-1] if sys.argv[1].endswith('/') else sys.argv[1]
+outdir = folder[:-1]+ '_nosil' if folder.endswith('/') else folder + '_nosil'   
 
 for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
     wavfolder = os.path.join(folder, subdir) if 'normalized' in folder else os.path.join(folder + '_normalized', subdir) 
     os.makedirs(wavfolder, exist_ok=True)
-    wavoutfolder = os.path.join(outdir, subdir)
-    os.makedirs(wavoutfolder, exist_ok=True)
+
     
 
     files = glob.glob(os.path.join(wavfolder, '*.wav'))
@@ -77,12 +76,27 @@ for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
             print(cnt_empty)
             continue
 
-        if 'normalized' not in folder:
-            fn = fn.replace('_normalized', '')
-        outf = os.path.join(wavoutfolder, os.path.basename(fn))
+        wavoutfolder = os.path.join(outdir, subdir)
+        os.makedirs(wavoutfolder, exist_ok=True)
 
-        os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
-        clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
+        if 'normalized' in outdir:
+            os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
+            clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
+
+        if 'normalized' not in outdir:
+            outdir2 = outdir.replace('_nosil', '_normalized_nosil')
+            wavoutfolder2 = os.path.join(outdir2, subdir)
+            os.makedirs(wavoutfolder2, exist_ok=True)
+            outf2 = os.path.join(wavoutfolder2, os.path.basename(fn))
+            os.system('sox  ' + fn + ' ' + outf2 + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
+    
+
+            fn = fn.replace('_normalized', '')
+            outf = os.path.join(wavoutfolder, os.path.basename(fn))
+
+            os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
+            clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
+
 
 
     
