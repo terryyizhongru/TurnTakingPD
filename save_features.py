@@ -9,12 +9,16 @@ from pathlib import Path
 import librosa
 import numpy as np
 import webrtcvad
+import parselmouth
 
+
+        
 class FeatureExtractor:
     def __init__(self, sr=44100, frame_length=4096):
         self.sr = sr
         self.frame_length = frame_length
         self.hop_length = self.frame_length // 4
+
 
 
     def extract_features(self, audio_path):
@@ -39,23 +43,27 @@ class FeatureExtractor:
         # spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.99)
         # spec_rolloff_min = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.01)
 
-        # extract pitch(f0) from time series
-        f0, voiced_flag, voiced_probs = librosa.pyin(y,
-                                                     sr = sr,
-                                                     fmin=librosa.note_to_hz('C2'),
-                                                     fmax=librosa.note_to_hz('C7'),
-                                                     fill_na=0.0)
-        # f0 = f0[np.newaxis, :]
-        # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
+        # # extract pitch(f0) from time series
+        # f0, voiced_flag, voiced_probs = librosa.pyin(y,
+        #                                              sr = sr,
+        #                                              fmin=librosa.note_to_hz('C2'),
+        #                                              fmax=librosa.note_to_hz('C7'),
+        #                                              fill_na=0.0)
+        # # f0 = f0[np.newaxis, :]
+        # # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
     
-        energy_frames = np.array([
-            np.sum(np.abs(y[i:i+self.frame_length]**2))
-            for i in range(0, len(y), self.hop_length)
-        ])
+        # energy_frames = np.array([
+        #     np.sum(np.abs(y[i:i+self.frame_length]**2))
+        #     for i in range(0, len(y), self.hop_length)
+        # ])
 
-        
-        featurelist = ['f0', 'energy']
-        return (f0, energy_frames), featurelist
+        # featurelist = ['f0', 'energy']
+        # return (f0, energy_frames), featurelist
+    
+        jitter, shimmer = self.extract_jitter_shimmer(str(audio_path))
+
+        featurelist = ['jitter', 'shimmer']
+        return (jitter, shimmer), featurelist
 
         # # extract zero crossing rate
         # zcr = librosa.feature.zero_crossing_rate(y=y)
@@ -73,6 +81,20 @@ class FeatureExtractor:
         # print(features.shape)
         
         # return features
+    
+
+    def extract_jitter_shimmer(self, sound_file):
+        sound = parselmouth.Sound(sound_file)
+        pitch = sound.to_pitch()
+        pulses = parselmouth.praat.call([sound, pitch], "To PointProcess (cc)")
+        
+        jitter_local = parselmouth.praat.call(pulses, "Get jitter (local)", 0, 0, 0.0001, 0.02, 1.3)
+        shimmer_local = parselmouth.praat.call([sound, pulses], "Get shimmer (local)", 0, 0, 0.0001, 0.02, 1.3, 1.6)
+        
+        print(jitter_local, shimmer_local)
+        return jitter_local, shimmer_local
+
+
     
     def get_vad(self, y, sr, mode=2):
         vad = webrtcvad.Vad()
@@ -127,6 +149,106 @@ class FeatureExtractor:
         except Exception as e:
             return None, None, f"Error processing {wav_file}: {e}"
     
+
+
+
+def add2list(group_id, feature, ls):
+    if group_id == '11':
+        ls[0].append(feature)
+    elif group_id == '21':
+        ls[1].append(feature)
+    elif group_id == '22':
+        ls[2].append(feature)
+    else:
+        print(f'Invalid group id {group_id}')
+    
+
+def multiprocess_extract():
+
+    feature_extractor = FeatureExtractor()
+
+    # load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
+    for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
+    # for folder in ['PictureNaming']:
+        folder_path = base_folder_path / folder
+        wav_files = list(folder_path.glob('*.wav'))
+        print(f'Processing {folder} folder...')
+        print(f'Found {len(wav_files)} wav files')
+
+
+        if folder == 'BoundaryTone':
+            args = [(wav_file, feature_extractor) for wav_file in wav_files]
+            with multiprocess.Pool() as pool:
+                results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
+                for group_id, features, message in results:
+                    if features is not None:
+                        add2list(group_id, features, BD)            
+                        print(message)
+                    else:
+                        print(message)
+            # for wav_file in tqdm(wav_files):
+            #     process_file(wav_file, feature_extractor, BD)
+            for sublist in BD:
+                print(len(sublist))
+                
+        elif folder == 'EarlyLate':
+            args = [(wav_file, feature_extractor) for wav_file in wav_files]
+            with multiprocess.Pool() as pool:
+                results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
+                for group_id, features, message in results:
+                    if features is not None:
+                        add2list(group_id, features, EL)
+                        print(message)
+                    else:
+                        print(message)
+            # for wav_file in tqdm(wav_files):
+            #     process_file(wav_file, feature_extractor, EL)
+            for sublist in EL:
+                print(len(sublist))
+                
+        elif folder == 'PictureNaming':
+            args = [(wav_file, feature_extractor) for wav_file in wav_files]
+            with multiprocess.Pool() as pool:
+                results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
+                for group_id, features, message in results:
+                    if features is not None:
+                        add2list(group_id, features, PN)
+                        print(message)
+                    else:
+                        print(message)
+            # for wav_file in tqdm(wav_files):
+            #     process_file(wav_file, feature_extractor, PN)
+            for sublist in PN:
+                print(len(sublist))
+
+        #merge 3lists to all3
+        for i in range(3):
+            all3[i] += BD[i] + EL[i] + PN[i]
+        for sublist in all3:
+                print(len(sublist))
+
+def singleprocess_extract():
+    feature_extractor = FeatureExtractor()
+
+    # load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
+    # for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
+    for folder in ['PictureNaming']:
+        folder_path = base_folder_path / folder
+        wav_files = list(folder_path.glob('*.wav'))
+        print(f'Processing {folder} folder...')
+        print(f'Found {len(wav_files)} wav files')
+
+        results = []
+        for wav_file in tqdm(wav_files):
+            args = (wav_file, feature_extractor)
+            results.append(feature_extractor.process_file(args))
+        for group_id, features, message in results:
+            if features is not None:
+                add2list(group_id, features, PN)
+                print(message)
+            else:
+                print(message)
+
     
 
 if len(sys.argv) != 2:
@@ -144,79 +266,4 @@ EL = [[], [], []]
 PN = [[], [], []]
 all3 = [[], [], []]
 
-
-def add2list(group_id, feature, ls):
-    if group_id == '11':
-        ls[0].append(feature)
-    elif group_id == '21':
-        ls[1].append(feature)
-    elif group_id == '22':
-        ls[2].append(feature)
-    else:
-        print(f'Invalid group id {group_id}')
-    
-
-feature_extractor = FeatureExtractor()
-
-# load wav files in BoundaryTone  EarlyLate  PictureNaming folders separately
-for folder in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
-#for folder in ['BoundaryTone', 'PictureNaming']:
-    folder_path = base_folder_path / folder
-    wav_files = list(folder_path.glob('*.wav'))
-    print(f'Processing {folder} folder...')
-    print(f'Found {len(wav_files)} wav files')
-
-
-    if folder == 'BoundaryTone':
-        args = [(wav_file, feature_extractor) for wav_file in wav_files]
-        with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, features, message in results:
-                if features is not None:
-                    add2list(group_id, features, BD)            
-                    print(message)
-                else:
-                    print(message)
-        # for wav_file in tqdm(wav_files):
-        #     process_file(wav_file, feature_extractor, BD)
-        for sublist in BD:
-            print(len(sublist))
-            
-    elif folder == 'EarlyLate':
-        args = [(wav_file, feature_extractor) for wav_file in wav_files]
-        with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, features, message in results:
-                if features is not None:
-                    add2list(group_id, features, EL)
-                    print(message)
-                else:
-                    print(message)
-        # for wav_file in tqdm(wav_files):
-        #     process_file(wav_file, feature_extractor, EL)
-        for sublist in EL:
-            print(len(sublist))
-            
-    elif folder == 'PictureNaming':
-        args = [(wav_file, feature_extractor) for wav_file in wav_files]
-        with multiprocess.Pool() as pool:
-            results = list(tqdm(pool.imap(feature_extractor.process_file, args), total=len(wav_files)))
-            for group_id, features, message in results:
-                if features is not None:
-                    add2list(group_id, features, PN)
-                    print(message)
-                else:
-                    print(message)
-        # for wav_file in tqdm(wav_files):
-        #     process_file(wav_file, feature_extractor, PN)
-        for sublist in PN:
-            print(len(sublist))
-
-    #merge 3lists to all3
-    for i in range(3):
-        all3[i] += BD[i] + EL[i] + PN[i]
-    for sublist in all3:
-            print(len(sublist))
-
-
-
+singleprocess_extract()

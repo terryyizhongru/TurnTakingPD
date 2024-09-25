@@ -124,7 +124,7 @@ def load_rp():
 
 
 
-def load_frame_feat(feature_name='energy', log_value=False):
+def load_feat(base_folder_path, feature_name='energy', log_value=False):
         # 3 sublists for YA OA PD
     all_data = []
 
@@ -141,6 +141,10 @@ def load_frame_feat(feature_name='energy', log_value=False):
         for npy_file in npy_files:
             feature = np.load(npy_file)         
             # check if all 0 value
+            # if nan in the feature
+            if np.isnan(feature).any():
+                print(f'nan in {npy_file}')
+                continue
             if np.max(feature) == 0 and np.min(feature) == 0:
                 cnt += 1
                 continue
@@ -374,7 +378,7 @@ def all_level_analysis_frame(df):
     # mean of std of all male utterances
     df_male_mean_std = df.copy()
     df_male_mean_std = df_male_mean_std[df_male_mean_std['gender'] == 'M']
-    df_male_mean_std['value'] = df_male_mean_std['value'].apply(lambda x: np.mean(x))
+    df_male_mean_std['value'] = df_male_mean_std['value'].apply(lambda x: np.std(x))
     OA_values = np.array(df_male_mean_std[df_male_mean_std['group_id'] == '21'].groupby('subject_id')['value'].mean().values)
     PD_values = np.array(df_male_mean_std[df_male_mean_std['group_id'] == '22'].groupby('subject_id')['value'].mean().values)
     OA_stats, PD_stats = basic_stats(OA_values, PD_values, groupnames=['OA', 'PD'])
@@ -389,7 +393,7 @@ def all_level_analysis_frame(df):
     # mean of std of all female utterances
     df_female_mean_std = df.copy()
     df_female_mean_std = df_female_mean_std[df_female_mean_std['gender'] == 'V']
-    df_female_mean_std['value'] = df_female_mean_std['value'].apply(lambda x: np.mean(x))
+    df_female_mean_std['value'] = df_female_mean_std['value'].apply(lambda x: np.std(x))
     OA_values = np.array(df_female_mean_std[df_female_mean_std['group_id'] == '21'].groupby('subject_id')['value'].mean().values)
     PD_values = np.array(df_female_mean_std[df_female_mean_std['group_id'] == '22'].groupby('subject_id')['value'].mean().values)
     OA_stats, PD_stats = basic_stats(OA_values, PD_values, groupnames=['OA', 'PD'])
@@ -462,6 +466,7 @@ def all_level_analysis_utt(df):
     # utterance level
     df_utt_mean = df.copy()
     OA_values = np.concatenate(df_utt_mean[df_utt_mean['group_id'] == '21']['value'].values)
+    # check how many nan in the data
     PD_values = np.concatenate(df_utt_mean[df_utt_mean['group_id'] == '22']['value'].values)
     OA_stats, PD_stats = basic_stats(OA_values, PD_values, groupnames=['OA', 'PD'])
     p_ks1, p_ks2, p_kw, p_lev = stats_test(OA_values, PD_values, groupnames=['OA', 'PD'])
@@ -565,40 +570,55 @@ def all_level_analysis_utt(df):
 
 
 
-base_folder_path = Path('/data/storage025/wavs_single_channel_normalized_nosil/')
-
-featname = 'rp'
+featname = 'shimmer'
+norm = True
 log_feat = False
+level = 'utt'
+
 np.set_printoptions(precision=2)
 
+base_folder_path = Path('/data/storage025/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/wavs_single_channel_nosil')
 
 
-metadata = load_frame_feat(feature_name=featname, log_value=log_feat)
+metadata = load_feat(base_folder_path, feature_name=featname, log_value=log_feat)
 print(metadata[0])
-
-
 
 
 df = pd.DataFrame(metadata)
 # delete all item in dataframe with group id equal to 11
 df = df[df['group_id'] != '11']
 
+if level == 'frame':
+    # res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
+    res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
+    print(res_df_allexp)
 
-# res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
-res_df_allexp = pd.DataFrame(all_level_analysis_utt(df))
-print(res_df_allexp)
+    res_df_PictureNaming = pd.DataFrame(all_level_analysis_frame(df[df['experiment'] == 'exp_1_PictureNaming']))
+    res_df_EarlyLate = pd.DataFrame(all_level_analysis_frame(df[df['experiment'] == 'exp_2_EarlyLate']))
+    res_df_BoundaryTone = pd.DataFrame(all_level_analysis_frame(df[df['experiment'] == 'exp_3_BoundaryTone']))
 
-res_df_PictureNaming = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_1_PictureNaming']))
-res_df_EarlyLate = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_2_EarlyLate']))
-res_df_BoundaryTone = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_3_BoundaryTone']))
+    # print(res_df_PictureNaming)
+    # print(res_df_EarlyLate)
+    # print(res_df_BoundaryTone)
 
-# print(res_df_PictureNaming)
-# print(res_df_EarlyLate)
-# print(res_df_BoundaryTone)
+
+elif level == 'utt':
+    res_df_allexp = pd.DataFrame(all_level_analysis_utt(df))
+    print(res_df_allexp)
+
+    res_df_PictureNaming = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_1_PictureNaming']))
+    res_df_EarlyLate = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_2_EarlyLate']))
+    res_df_BoundaryTone = pd.DataFrame(all_level_analysis_utt(df[df['experiment'] == 'exp_3_BoundaryTone']))
+
+    # print(res_df_PictureNaming)
+    # print(res_df_EarlyLate)
+    # print(res_df_BoundaryTone)
+
 
 # write all these res to one excel file and one sheet for each experiment
 logornot = 'log_' if log_feat else ''
-with pd.ExcelWriter('excels/all_level_analysis_' + logornot + featname + '.xlsx') as writer:
+normornot = 'norm_' if norm else ''
+with pd.ExcelWriter('excels/all_level_analysis_' + level + '_' + normornot + logornot + featname + '.xlsx') as writer:
     res_df_allexp.to_excel(writer, sheet_name='all_exp')
     res_df_PictureNaming.to_excel(writer, sheet_name='PictureNaming')
     res_df_EarlyLate.to_excel(writer, sheet_name='EarlyLate')
