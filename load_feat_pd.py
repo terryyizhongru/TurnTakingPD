@@ -673,7 +673,13 @@ def load_feat_and_analysis(feat, norm=True, log_feat=False):
     df = pd.DataFrame(metadata)
     # delete all item in dataframe with group id equal to 11
     df = df[df['group_id'] != '11']
-
+    # import pdb; pdb.set_trace()
+    edulist = [2124, 2103, 2108, 2128, 2120, 2114, 2130, 2132]
+    edulist = [str(edu) for edu in edulist]
+    # remove subject in the education list
+    # df = df[~df['subject_id'].isin(edulist)]
+    
+    
     if level == 'frame':
         # res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
         res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
@@ -718,9 +724,10 @@ if __name__ == '__main__':
 
     np.set_printoptions(precision=2)
     allfeats = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
-    for feat in allfeats:
-        load_feat_and_analysis((feat, feats2level[feat]))
+    # for feat in allfeats:
+    #     load_feat_and_analysis((feat, feats2level[feat]))
 
     
-    load_feat_and_analysis(('f0', 'frame'), log_feat=True)
-    load_feat_and_analysis(('energy', 'frame'), norm=False)
+    # load_feat_and_analysis(('f0', 'frame'), log_feat=True)
+    # load_feat_and_analysis(('energy', 'frame'), norm=False)
+    load_feat_and_analysis(('rp', 'utt'), norm=False)
