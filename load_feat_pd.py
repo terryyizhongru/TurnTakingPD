@@ -161,20 +161,32 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False):
 
             if log_value is True:              
                 feature = np.log(feature)
+            
+            filename = npy_file.stem
+            experiment = 'exp_' + str(exp_idx + 1) + '_' + folder
+            if experiment.startswith('exp_1'):
+                item = filename.split('_')[1].rstrip('.png')
+            elif experiment.startswith('exp_3'):
+                item = '_'.join(filename.split('_')[1:3])
+            elif experiment.startswith('exp_2'):
+                item = filename.split('_')[1]
+            else:
+                raise ValueError('Experiment not found')
 
 
-            item = {
+            utt = {
                     'experiment': 'exp_' + str(exp_idx + 1) + '_' + folder,
                     'group_id': group_id,
                     'value': feature,
                     'subject_id':subject_id,
-                    'filename': npy_file.stem,
+                    'filename': filename,
+                    'item': item,
                     'age': demo_data[0],
                     'gender': demo_data[1],
                     'moca': demo_data[2],
                     'education': demo_data[3],
                 }
-            all_data.append(item)
+            all_data.append(utt)
 
             # if stats == 'mean':
             #     feature = np.mean(feature)
@@ -661,14 +673,8 @@ def all_level_analysis_utt(df):
 
 
 
-def load_feat_and_analysis(feat, norm=True, log_feat=False):
-    featname, level = feat
-    base_folder_path = Path('/data/storage025/Turntaking/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/Turntaking/wavs_single_channel_nosil')
-
-
-    metadata = load_feat(base_folder_path, feature_name=featname, log_value=log_feat)
-    print(metadata[0])
-
+def basic_analysis(metadata, featname='shimmer', level='utt', norm=True, log_feat=False):
+    
 
     df = pd.DataFrame(metadata)
     # delete all item in dataframe with group id equal to 11
@@ -707,10 +713,14 @@ def load_feat_and_analysis(feat, norm=True, log_feat=False):
         res_df_PictureNaming.to_excel(writer, sheet_name='PictureNaming')
         res_df_EarlyLate.to_excel(writer, sheet_name='EarlyLate')
         res_df_BoundaryTone.to_excel(writer, sheet_name='BoundaryTone')
+
+
         
 
 if __name__ == '__main__':
     
+    base_folder_path = Path('/data/storage025/Turntaking/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/Turntaking/wavs_single_channel_nosil')
+
     featname = 'shimmer'
 
     level = 'utt'
@@ -725,9 +735,8 @@ if __name__ == '__main__':
     np.set_printoptions(precision=2)
     allfeats = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
     # for feat in allfeats:
-    #     load_feat_and_analysis((feat, feats2level[feat]))
-
     
-    # load_feat_and_analysis(('f0', 'frame'), log_feat=True)
-    # load_feat_and_analysis(('energy', 'frame'), norm=False)
-    load_feat_and_analysis(('rp', 'utt'), norm=False)
+
+    metadata = load_feat(base_folder_path, feature_name=featname)
+    basic_analysis(metadata, featname=featname, level=feats2level[featname], norm=False)
+    
