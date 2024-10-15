@@ -124,7 +124,7 @@ def load_rp():
 
 
 
-def load_feat(base_folder_path, feature_name='energy', log_value=False):
+def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False):
         # 3 sublists for YA OA PD
     all_data = []
 
@@ -172,6 +172,7 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False):
                 item = filename.split('_')[1]
             else:
                 raise ValueError('Experiment not found')
+            
 
 
             utt = {
@@ -179,29 +180,24 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False):
                     'group_id': group_id,
                     'value': feature,
                     'subject_id':subject_id,
-                    'filename': filename,
+                    'filename': filename.split('.')[0],
                     'item': item,
                     'age': demo_data[0],
                     'gender': demo_data[1],
                     'moca': demo_data[2],
                     'education': demo_data[3],
                 }
+                        
+            if demo_data[1] == 'NA':
+                continue
+                
+            if YA is False and group_id == '11':
+                continue
+
             all_data.append(utt)
-
-            # if stats == 'mean':
-            #     feature = np.mean(feature)
-            # elif stats == 'std':
-            #     feature = np.std(feature)
             
-            # add2list(group_id, (npy_file.stem, feature), exp2lists[folder])
         print(f'{cnt} files with all 0 values')
-        
-    
-    # all3 = [[], [], []] 
-    # for i in range(3):
-    #     all3[i] += exp2lists['BoundaryTone'][i] + exp2lists['EarlyLate'][i] + exp2lists['PictureNaming'][i]
 
-        
     return all_data
 
 
