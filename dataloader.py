@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -129,19 +129,24 @@ class SubsetFeatureDataset(Dataset):
         'f0': 'frame',
         'energy': 'frame'
         }
+        
+        self.label_mapping = {
+            '21': 0,
+            '22': 1
+        }
 
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         """
-        Retrieves the sample at the specified index.
+        Retrieves the sample and its label at the specified index.
 
         Args:
             idx (int): Index of the sample.
 
         Returns:
-            torch.Tensor: A tensor containing all processed features for the sample.
+            Tuple[torch.Tensor, int]: A tuple containing concatenated features and the label.
         """
         if idx < 0 or idx >= len(self):
             raise IndexError("Index out of range")
@@ -158,6 +163,10 @@ class SubsetFeatureDataset(Dataset):
                 # Ensure feature_data is a NumPy array for consistency
                 if isinstance(feature_data, list):
                     feature_data = np.array(feature_data)
+                elif isinstance(feature_data, np.ndarray):
+                    pass
+                else:
+                    raise ValueError(f"Unsupported type for frame-level feature '{feature}': {type(feature_data)}")
                 
                 # Calculate mean and standard deviation
                 mean = np.mean(feature_data)
@@ -168,17 +177,60 @@ class SubsetFeatureDataset(Dataset):
             else:
                 # For 'utt' level features
                 if isinstance(feature_data, np.ndarray):
-                    # If the feature is an array, flatten it and extend the list
-                    processed_features.extend(feature_data.flatten())
+                    if feature_data.size == 1:
+                        # Single value, use it directly
+                        value = feature_data.item()
+                        processed_features.append(value)
+                    else:
+                        # Multiple values, flatten and extend
+                        processed_features.extend(feature_data.flatten().tolist())
                 else:
-                    # If the feature is a scalar, append it directly
+                    # Assume it's a scalar
                     processed_features.append(feature_data)
         
         # Convert the processed features list to a PyTorch tensor of type float32
         concate_features = torch.tensor(processed_features, dtype=torch.float32)
         
-        return concate_features
-    
+        # Retrieve and map the label
+        group_id = self.data.iloc[idx]['group_id']
+        if group_id not in self.label_mapping:
+            raise ValueError(f"Unexpected group_id '{group_id}'. Expected '21' or '22'.")
+        label = self.label_mapping[group_id]
+        
+        return concate_features, label
+
+    def get_numpy(
+        self,
+        label_column: Optional[str] = None
+        ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Converts the dataset to NumPy arrays for scikit-learn training.
+
+        Args:
+            label_column (str, optional): The name of the metadata column to use as labels.
+                                          If None, only features are returned.
+
+        Returns:
+            Tuple[np.ndarray, Optional[np.ndarray]]: Features and labels as NumPy arrays.
+                                                     If label_column is None, returns (X, None).
+        """
+        X = []
+        y = [] if label_column else None
+
+        for idx in range(len(self)):
+            features, label = self.__getitem__(idx)
+            X.append(features.numpy())
+            if label_column:
+                # Map the label using the predefined mapping
+                group_id = self.data.iloc[idx][label_column]
+                if group_id not in self.label_mapping:
+                    raise ValueError(f"Unexpected group_id '{group_id}'. Expected '21' or '22'.")
+                y.append(self.label_mapping[group_id])
+        
+        X = np.stack(X)  # Shape: (num_samples, num_features)
+        y = np.array(y) if label_column else None
+
+        return X, y
 
 def train_test_split_by_subject(
     dataset: Dataset,
@@ -255,72 +307,3 @@ def train_test_split_by_subject(
     test_dataset = SubsetFeatureDataset(test_df, feature_names)
 
     return train_dataset, test_dataset
-
-
-
-        
-if __name__ == '__main__':
-
-    feats2level = {
-        'jitter': 'utt',
-        'shimmer': 'utt',
-        'rp': 'utt',
-        'f0': 'frame',
-        'energy': 'frame'
-    }
-
-    np.set_printoptions(precision=2)
-    features_to_load = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
-    # features_to_load = ['energy', 'rp']
-    # for feat in allfeats:
-    
-    base_folder = '/data/storage025/Turntaking/wavs_single_channel_normalized_nosil'
-
-    # Initialize the merged dataset
-    merged_dataset = FeatureDataset(
-        base_folder_path=base_folder,
-        feature_names=features_to_load,
-    )
-
-
-
-    # Perform train-test split
-    train_dataset, test_dataset = train_test_split_by_subject(
-        merged_dataset,
-        feature_names=features_to_load,
-        test_size=0.2,        # 20% for testing
-        random_state=523       # For reproducibility
-    )
-
-    print(f"\nTraining Dataset: {len(train_dataset)} samples")
-    print(f"Testing Dataset: {len(test_dataset)} samples")
-
-    # Create DataLoaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=16,      # Adjust based on your memory constraints
-        shuffle=True,       # Shuffle for training
-        num_workers=4       # Adjust based on your CPU cores
-    )
-
-    test_loader = DataLoader(
-        test_dataset,
-        batch_size=16,      # Adjust as needed
-        shuffle=False,      # No need to shuffle for testing
-        num_workers=4       # Adjust based on your CPU cores
-    )
-
-    # Example: Iterate over the training DataLoader
-    for batch_idx, batch in enumerate(train_loader):
-        # Access features and metadata
-        print(batch)
-        print(len(batch))
-        # ... and so on for other metadata and features
-
-        # Example: Print batch information
-        print(f"Train Batch {batch_idx + 1}:")
- 
-
-        # Break after the first batch for demonstration
-        break
-
