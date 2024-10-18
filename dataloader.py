@@ -307,3 +307,31 @@ def train_test_split_by_subject(
     test_dataset = SubsetFeatureDataset(test_df, feature_names)
 
     return train_dataset, test_dataset
+
+if __name__ == '__main__':
+    import pickle
+
+    feats2level = {
+        'jitter': 'utt',
+        'shimmer': 'utt',
+        'rp': 'utt',
+        'f0': 'frame',
+        'energy': 'frame'
+    }
+
+    np.set_printoptions(precision=2)
+    features_to_load = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
+    # features_to_load = ['energy', 'rp']
+    # for feat in allfeats:
+    
+    base_folder = '/data/storage025/Turntaking/wavs_single_channel_normalized_nosil'
+
+    # Initialize the merged dataset
+    merged_dataset = FeatureDataset(
+        base_folder_path=base_folder,
+        feature_names=features_to_load,
+    )
+
+    # save merged dataset as pcikle
+    with open('merged_dataset.pkl', 'wb') as f:
+        pickle.dump(merged_dataset, f)
