@@ -8,9 +8,8 @@ from pathlib import Path
 
 import librosa
 import numpy as np
-import webrtcvad
 import parselmouth
-
+from parselmouth.praat import call
 
         
 class FeatureExtractor:
@@ -30,48 +29,37 @@ class FeatureExtractor:
         # # extract mel
         # mel = librosa.feature.melspectrogram(y=y, sr=sr)
 
-        # # extract contrast
-        # contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
+        # extract contrast
+        contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
 
-        # # extract spectral centroid
-        # spec_cent = librosa.feature.spectral_centroid(y=y, sr=sr)
+        # extract spectral centroid
+        spec_cent = librosa.feature.spectral_centroid(y=y, sr=sr)
 
-        # # extract spectral bandwidth
-        # spec_bw = librosa.feature.spectral_bandwidth(y=y, sr=sr)
+        # extract spectral bandwidth
+        spec_bw = librosa.feature.spectral_bandwidth(y=y, sr=sr)
 
-        # # extract spectral rolloff
-        # spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.99)
-        # spec_rolloff_min = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.01)
+        # extract spectral rolloff
+        spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.99)
+        spec_rolloff_min = librosa.feature.spectral_rolloff(y=y, sr=sr, roll_percent=0.01)
 
         # # extract pitch(f0) from time series
         # f0, voiced_flag, voiced_probs = librosa.pyin(y,
-        #                                              sr = sr,
         #                                              fmin=librosa.note_to_hz('C2'),
         #                                              fmax=librosa.note_to_hz('C7'),
         #                                              fill_na=0.0)
-        # # f0 = f0[np.newaxis, :]
-        # # pyin_features = np.concatenate((f0, voiced_flag, voiced_probs), axis=0)
+        # f0 = f0[np.newaxis, :]
+        # voiced_flag = voiced_flag[np.newaxis, :]
+        # voiced_probs = voiced_probs[np.newaxis, :]
+
     
-        # energy_frames = np.array([
-        #     np.sum(np.abs(y[i:i+self.frame_length]**2))
-        #     for i in range(0, len(y), self.hop_length)
-        # ])
+        # extract zero crossing rate
+        zcr = librosa.feature.zero_crossing_rate(y=y)
 
-        # featurelist = ['f0', 'energy']
-        # return (f0, energy_frames), featurelist
-    
-        jitter, shimmer = self.extract_jitter_shimmer(str(audio_path))
-
-        featurelist = ['jitter', 'shimmer']
-        return (jitter, shimmer), featurelist
-
-        # # extract zero crossing rate
-        # zcr = librosa.feature.zero_crossing_rate(y=y)
-
-        # # extract flatness
-        # flatness = librosa.feature.spectral_flatness(y=y)
+        # extract flatness
+        flatness = librosa.feature.spectral_flatness(y=y)
         
-        # # concatenate all features
+        praatsound = parselmouth.Sound(str(audio_path))
+        # concatenate all features
         # features = np.concatenate((mfcc, mel, contrast, spec_cent, spec_bw, spec_rolloff, spec_rolloff_min, f0, voiced_flag, voiced_probs, zcr, flatness), axis=0)
         # # features = np.concatenate((f0, voiced_probs), axis=0)
         # # Aggregate features
@@ -81,10 +69,46 @@ class FeatureExtractor:
         # print(features.shape)
         
         # return features
+        formant = praatsound.to_formant_burg(time_step=0.01, max_number_of_formants=3, maximum_formant=5500)
     
+        # 获取时间轴
+        times = formant.xs()
+        
+        # 初始化列表
+        F1 = []
+        F2 = []
+        F3 = []
+        
+        # 提取每个时间点的Formants
+        for t in times:
+            f1 = formant.get_value_at_time(1, t)
+            f2 = formant.get_value_at_time(2, t)
+            f3 = formant.get_value_at_time(3, t)
+            
+            # 处理未定义的Formants
+            F1.append(f1 if f1 != 0 else np.nan)
+            F2.append(f2 if f2 != 0 else np.nan)
+            F3.append(f3 if f3 != 0 else np.nan)
+        # change to numpy array
+        F1, F2, F3 = np.array(F1), np.array(F2), np.array(F3)
+        harmonicity = call(praatsound, "To Harmonicity (cc)", 0.01, 75, 0.1, 1.0)
+        hnr_value = call(harmonicity, "Get mean", 0, 0)
+        
+        featurelist = ['contrast', 'spec_cent', 'spec_bw', 'spec_rolloff', 'spec_rolloff_min', 'zcr', 'flatness', 'F1', 'F2', 'F3', 'hnr_value']
+        features = (contrast, spec_cent, spec_bw, spec_rolloff, spec_rolloff_min, zcr, flatness, F1, F2, F3, hnr_value)
+        for feat in features:
+            if type(feat) == float:
+                continue
+                # print(feat)
+            elif type(feat) == np.ndarray:
+                if feat.shape[0] == 1 and len(feat.shape) == 2:
+                    feat = feat[0]
+                # print(feat.shape)
+    
+        return features, featurelist
 
-    def extract_jitter_shimmer(self, sound_file):
-        sound = parselmouth.Sound(sound_file)
+    def extract_jitter_shimmer(self, praatsound):
+        sound = praatsound
         pitch = sound.to_pitch()
         pulses = parselmouth.praat.call([sound, pitch], "To PointProcess (cc)")
         
@@ -96,30 +120,30 @@ class FeatureExtractor:
 
 
     
-    def get_vad(self, y, sr, mode=2):
-        vad = webrtcvad.Vad()
-        vad.set_mode(mode)
+    # def get_vad(self, y, sr, mode=2):
+    #     vad = webrtcvad.Vad()
+    #     vad.set_mode(mode)
 
-        sample_rate = 16000
-        # downsampling from 44100 to 16000 and framing
-        y_16k = librosa.resample(y, orig_sr=sr, target_sr=sample_rate)
-        # transfer to bytes
-        y_16k = np.int16(y_16k * 32768).tobytes()
-        # calculate bytes of 10ms in 16000Hz
-        step = int(sample_rate * 0.01) * 2
+    #     sample_rate = 16000
+    #     # downsampling from 44100 to 16000 and framing
+    #     y_16k = librosa.resample(y, orig_sr=sr, target_sr=sample_rate)
+    #     # transfer to bytes
+    #     y_16k = np.int16(y_16k * 32768).tobytes()
+    #     # calculate bytes of 10ms in 16000Hz
+    #     step = int(sample_rate * 0.01) * 2
 
-        # assert error if len(y_16k) < step
-        assert len(y_16k) >= step
+    #     # assert error if len(y_16k) < step
+    #     assert len(y_16k) >= step
 
-        # loop the bytes in 10ms frames
-        frames = []
-        for i in range(0, len(y_16k) - step, step):
-            frames.append(y_16k[i:i+step])
+    #     # loop the bytes in 10ms frames
+    #     frames = []
+    #     for i in range(0, len(y_16k) - step, step):
+    #         frames.append(y_16k[i:i+step])
 
-        vadres = []
-        for i, frame in enumerate(frames):
-            vadres.append(vad.is_speech(frame, sample_rate))
-        return vadres
+    #     vadres = []
+    #     for i, frame in enumerate(frames):
+    #         vadres.append(vad.is_speech(frame, sample_rate))
+    #     return vadres
     
     def process_file(self, args):
         wav_file, extractor = args
@@ -239,7 +263,7 @@ def singleprocess_extract():
         print(f'Found {len(wav_files)} wav files')
 
         results = []
-        for wav_file in tqdm(wav_files):
+        for wav_file in tqdm(wav_files[:100]):
             args = (wav_file, feature_extractor)
             results.append(feature_extractor.process_file(args))
         for group_id, features, message in results:
@@ -266,4 +290,4 @@ EL = [[], [], []]
 PN = [[], [], []]
 all3 = [[], [], []]
 
-singleprocess_extract()
+multiprocess_extract()
