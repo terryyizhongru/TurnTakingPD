@@ -146,7 +146,11 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
             # if nan in the feature
             if np.isnan(feature).any():
                 print(f'nan in {npy_file}')
-                continue
+                # remove the nan value
+                feature = feature[~np.isnan(feature)]
+                if len(feature) == 0:
+                    print(f'All nan value in {npy_file}')
+                    continue
             if np.max(feature) == 0 and np.min(feature) == 0:
                 cnt += 1
                 continue
