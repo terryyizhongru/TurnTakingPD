@@ -2,6 +2,7 @@
 import os
 import glob
 from pathlib import Path
+import pdb
 
 import numpy as np
 from tqdm import tqdm
@@ -124,9 +125,10 @@ def load_rp():
 
 
 
-def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False):
+def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False, threeD=False):
         # 3 sublists for YA OA PD
     all_data = []
+    all_data_3D = []
 
     exp2lists = {'BoundaryTone': [[], [], []], 'EarlyLate': [[], [], []], 'PictureNaming': [[], [], []]}
     avg_diff = []
@@ -139,7 +141,7 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
 
         cnt = 0
         for npy_file in npy_files:
-            feature = np.load(npy_file)         
+            feature = np.load(npy_file)    
             # check if all 0 value
             # if nan in the feature
             if np.isnan(feature).any():
@@ -152,8 +154,11 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
             subject_id, group_id, demo_data = get_demo(npy_file.stem)
             if subject_id is None:
                 continue
-            feature = feature[feature != 0]
+            
+        
             if feature_name == 'f0':
+                feature = feature[feature != 0]
+
                 feature = feature[feature < 500.0]
                 if feature.shape[0] == 0:
                     print(f'All value larger than 500.0 in {npy_file}')
@@ -173,12 +178,21 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
             else:
                 raise ValueError('Experiment not found')
             
-
-
-            utt = {
+            if demo_data[1] == 'NA':
+                continue
+                
+            if YA is False and group_id == '11':
+                continue
+            
+            if threeD is True:
+                dim = feature.shape[0]
+                if len(all_data_3D) == 0:
+                    all_data_3D = [[] for _ in range(dim)]
+                for i in range(dim):
+                    utt = {
                     'experiment': 'exp_' + str(exp_idx + 1) + '_' + folder,
                     'group_id': group_id,
-                    'value': feature,
+                    'value': feature[i],
                     'subject_id':subject_id,
                     'filename': filename.split('.')[0],
                     'item': item,
@@ -186,19 +200,29 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
                     'gender': demo_data[1],
                     'moca': demo_data[2],
                     'education': demo_data[3],
-                }
-                        
-            if demo_data[1] == 'NA':
-                continue
-                
-            if YA is False and group_id == '11':
-                continue
+                    }
+                    all_data_3D[i].append(utt)
+            
+            else:   
+                    
+                utt = {
+                        'experiment': 'exp_' + str(exp_idx + 1) + '_' + folder,
+                        'group_id': group_id,
+                        'value': feature,
+                        'subject_id':subject_id,
+                        'filename': filename.split('.')[0],
+                        'item': item,
+                        'age': demo_data[0],
+                        'gender': demo_data[1],
+                        'moca': demo_data[2],
+                        'education': demo_data[3],
+                    }
 
-            all_data.append(utt)
+                all_data.append(utt)
             
         print(f'{cnt} files with all 0 values')
 
-    return all_data
+    return all_data if threeD is False else all_data_3D
 
 
 
@@ -715,7 +739,7 @@ def basic_analysis(metadata, featname='shimmer', level='utt', norm=True, log_fea
 
 if __name__ == '__main__':
     
-    base_folder_path = Path('/data/storage025/Turntaking/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/Turntaking/wavs_single_channel_nosil')
+    base_folder_path = Path('/data/storage500/Turntaking/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/Turntaking/wavs_single_channel_nosil')
 
     featname = 'shimmer'
 
@@ -733,6 +757,7 @@ if __name__ == '__main__':
     # for feat in allfeats:
     
 
-    metadata = load_feat(base_folder_path, feature_name=featname)
-    basic_analysis(metadata, featname=featname, level=feats2level[featname], norm=False)
+    #metadata = load_feat(base_folder_path, feature_name=featname)
+    load_feat(base_folder_path, feature_name='contrast', threeD=True)
+    # basic_analysis(metadata, featname=featname, level=feats2level[featname], norm=False)
     

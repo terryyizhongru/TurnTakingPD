@@ -45,8 +45,7 @@ class FeatureExtractor:
         # # extract pitch(f0) from time series
         # f0, voiced_flag, voiced_probs = librosa.pyin(y,
         #                                              fmin=librosa.note_to_hz('C2'),
-        #                                              fmax=librosa.note_to_hz('C7'),
-        #                                              fill_na=0.0)
+        #                                              fmax=librosa.note_to_hz('C7'))
         # f0 = f0[np.newaxis, :]
         # voiced_flag = voiced_flag[np.newaxis, :]
         # voiced_probs = voiced_probs[np.newaxis, :]
