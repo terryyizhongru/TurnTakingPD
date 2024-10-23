@@ -324,7 +324,7 @@ if __name__ == '__main__':
     # features_to_load = ['energy', 'rp']
     # for feat in allfeats:
     
-    base_folder = '/data/storage025/Turntaking/wavs_single_channel_normalized_nosil'
+    base_folder = '/data/storage500/Turntaking/wavs_single_channel_normalized_nosil'
 
     # Initialize the merged dataset
     merged_dataset = FeatureDataset(
