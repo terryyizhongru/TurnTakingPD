@@ -56,5 +56,5 @@
         "contrast"
     ],
     "merged_data_pkl": "merged_dataset_batch12.pkl",
-    "base_folder": "/data/storage025/Turntaking/wavs_single_channel_normalized_nosil"
+    "base_folder": "/data/storage500/Turntaking/wavs_single_channel_normalized_nosil"
 }
