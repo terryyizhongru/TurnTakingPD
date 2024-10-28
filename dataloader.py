@@ -1,14 +1,18 @@
 import os
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
 from typing import List, Tuple, Dict, Optional
 import re
+import pickle
+import json
 from collections import defaultdict
 from pathlib import Path
-from load_feat_pd import load_feat  # Ensure this module is in your PYTHONPATH
+
 import pandas as pd
+from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+
+from load_feat_pd import load_feat  # Ensure this module is in your PYTHONPATH
 
 
 class FeatureDataset(Dataset):
@@ -112,7 +116,7 @@ class FeatureDataset(Dataset):
 
 
 class SubsetFeatureDataset(Dataset):
-    def __init__(self, dataframe: pd.DataFrame, feature_names: List[str]):
+    def __init__(self, dataframe: pd.DataFrame, feature_names: List[str], feats2level: dict):
         """
         Initializes the subset dataset.
 
@@ -122,14 +126,7 @@ class SubsetFeatureDataset(Dataset):
         """
         self.data = dataframe.reset_index(drop=True)
         self.feature_names = feature_names
-        self.feats2level = {
-        'jitter': 'utt',
-        'shimmer': 'utt',
-        'rp': 'utt',
-        'f0': 'frame',
-        'energy': 'frame'
-        }
-        
+        self.feats2level = feats2level
         self.label_mapping = {
             '21': 0,
             '22': 1
@@ -156,7 +153,7 @@ class SubsetFeatureDataset(Dataset):
         
         # Iterate over each feature
         for feature in self.feature_names:
-            level = self.feats2level.get(feature, 'utt')  # Default to 'utt' if not specified
+            level = self.feats2level.get(feature, 'frame')  # Default to 'frame' if not specified
             feature_data = self.data.iloc[idx][feature]
             
             if level == 'frame':
@@ -174,6 +171,20 @@ class SubsetFeatureDataset(Dataset):
                 
                 # Append mean and std to the processed_features list
                 processed_features.extend([mean, std])
+            elif level == '3d':
+                # Ensure feature_data is a NumPy array for consistency
+                if isinstance(feature_data, list):
+                    feature_data = np.array(feature_data)
+                elif isinstance(feature_data, np.ndarray):
+                    pass
+                else:
+                    raise ValueError(f"Unsupported type for 3D feature '{feature}': {type(feature_data)}")
+        
+                # Append mean and std to the processed_features list
+                for dim in range(feature_data.shape[0]):
+                    mean = np.mean(feature_data[dim])
+                    std = np.std(feature_data[dim])
+                    processed_features.extend([mean, std])
             else:
                 # For 'utt' level features
                 if isinstance(feature_data, np.ndarray):
@@ -235,6 +246,7 @@ class SubsetFeatureDataset(Dataset):
 def train_test_split_by_subject(
     dataset: Dataset,
     feature_names: List[str],
+    feats2level: dict,
     test_size: float = 0.2,
     random_state: int = 42
 ) -> Tuple[SubsetFeatureDataset, SubsetFeatureDataset]:
@@ -303,28 +315,28 @@ def train_test_split_by_subject(
     
 
     # Create subset datasets
-    train_dataset = SubsetFeatureDataset(train_df, feature_names)
-    test_dataset = SubsetFeatureDataset(test_df, feature_names)
+    train_dataset = SubsetFeatureDataset(train_df, feature_names, feats2level)
+    test_dataset = SubsetFeatureDataset(test_df, feature_names, feats2level)
 
     return train_dataset, test_dataset
 
 if __name__ == '__main__':
-    import pickle
-
-    feats2level = {
-        'jitter': 'utt',
-        'shimmer': 'utt',
-        'rp': 'utt',
-        'f0': 'frame',
-        'energy': 'frame'
-    }
-
+    
     np.set_printoptions(precision=2)
-    features_to_load = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
-    # features_to_load = ['energy', 'rp']
+
+    config_filepath = "config.json"
+
+    with open(config_filepath, "r") as json_file:
+        config_data = json.load(json_file)
+
+    feats2level = config_data["feats2level"]
+    allfeats_batch1 = config_data["allfeats_batch1"]
+    allfeats_batch2 = config_data["allfeats_batch2"]
+    features_to_load = config_data["features_to_load"]
+    merged_data_pkl = config_data["merged_data_pkl"]
+    base_folder = config_data["base_folder"]
     # for feat in allfeats:
     
-    base_folder = '/data/storage500/Turntaking/wavs_single_channel_normalized_nosil'
 
     # Initialize the merged dataset
     merged_dataset = FeatureDataset(
@@ -333,5 +345,5 @@ if __name__ == '__main__':
     )
 
     # save merged dataset as pcikle
-    with open('merged_dataset.pkl', 'wb') as f:
+    with open(merged_data_pkl, 'wb') as f:
         pickle.dump(merged_dataset, f)
