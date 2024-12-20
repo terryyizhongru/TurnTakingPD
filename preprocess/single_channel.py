@@ -26,14 +26,15 @@ if not os.path.exists(output_root):
 for root, dirs, files in os.walk(dirn):
     for file in files:
         if file.endswith(".wav"):
-            if normalize == '1':
+            if normalize == '0':
                 targetdir = root.replace(dirn, output_root)
                 if not os.path.exists(targetdir):
                     os.makedirs(targetdir)                
                 os.system("sox {} -c 1 {}".format(os.path.join(root, file), os.path.join(targetdir, file)))
-            elif normalize == '0':
+            elif normalize == '1':
                 targetdir = root.replace(dirn, output_root)
                 if not os.path.exists(targetdir):
                     os.makedirs(targetdir)
                 os.system("sox --norm=-0.445 {} -c 1 {}".format(os.path.join(root, file), os.path.join(targetdir, file)))
+                print("sox --norm=-0.445 {} -c 1 {}".format(os.path.join(root, file), os.path.join(targetdir, file)))
 

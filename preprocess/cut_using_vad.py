@@ -36,6 +36,7 @@ folder = sys.argv[1][:-1] if sys.argv[1].endswith('/') else sys.argv[1]
 outdir = folder[:-1]+ '_nosil' if folder.endswith('/') else folder + '_nosil'   
 
 for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
+# for subdir in ['BoundaryTone']:
     wavfolder = os.path.join(folder, subdir) if 'normalized' in folder else os.path.join(folder + '_normalized', subdir) 
     os.makedirs(wavfolder, exist_ok=True)
 
@@ -56,6 +57,7 @@ for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
             print(f"File too short: {fn}")
             cnt_empty += 1
             print(cnt_empty)
+
             continue
         
         wav = wav[16*150:]
@@ -78,8 +80,10 @@ for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
 
         wavoutfolder = os.path.join(outdir, subdir)
         os.makedirs(wavoutfolder, exist_ok=True)
-
+        clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
+        continue
         if 'normalized' in outdir:
+            outf = os.path.join(wavoutfolder, os.path.basename(fn))
             os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
             clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
 
@@ -105,4 +109,6 @@ for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
 
     print(f"cnt_empty: {cnt_empty}")
     clean_id.close()
+
+
 
