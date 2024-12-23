@@ -23,10 +23,15 @@ def check_rttm_files(folder_path):
             if filename.endswith('.rttm'):
                 filepath = os.path.join(root, filename)
                 with open(filepath, 'r') as file:
+                    flag = False
                     for line in file:
                         if 'SPEAKER_01' in line:
-                            print(filepath)
+                            flag = True
                             break
+                        if 'SPEAKER_00' in line:
+                            flag = True
+                    if not flag:
+                        print(filepath)
 
 # ...existing code...
 
