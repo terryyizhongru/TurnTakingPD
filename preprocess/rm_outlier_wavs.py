@@ -6,13 +6,12 @@ def remove_wav_paths(input_file):
         for line in f_in:
             if ".wav" not in line.lower():
                 print("no .wav in line: " + line)
-                continue
             elif os.path.exists(line.strip()):
                 os.system("rm " + line.strip())
-                continue
+            elif os.path.exists(line.strip().replace("_normalized", "")):
+                os.system("rm " + line.strip().replace("_normalized", ""))
             else:
                 print("file does not exist: " + line)
-                continue
         
                 
 
