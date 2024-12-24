@@ -37,7 +37,7 @@
         "spec_rolloff_min",
         "contrast"
     ],
-    "features_to_load": [
+    "features_to_load1": [
         "jitter",
         "shimmer",
         "f0",
@@ -54,9 +54,10 @@
         "spec_rolloff_min",
         "contrast"
     ],
-    "features_to_load2": [
+    "features_to_load": [
         "energy"
     ],
     "merged_data_pkl": "merged_dataset_batch3.pkl",
-    "base_folder": "/data/storage1t/Turntaking/PD_batch3_raw_single_channel_normalized_nosil"
+    "base_folder": "/data/storage1t/Turntaking/PD_batch3_raw_single_channel_normalized_nosil",
+    "list_not_load": "./nongit/filelists/batch3_multispeaker.txt"
 }

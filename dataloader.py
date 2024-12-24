@@ -19,7 +19,7 @@ from load_feat_pd import load_feat  # Ensure this module is in your PYTHONPATH
 
 
 class FeatureDataset(Dataset):
-    def __init__(self, base_folder_path: str, feature_names: List[str], log_value: bool = False):
+    def __init__(self, base_folder_path: str, feature_names: List[str], list_not_load: str, log_value: bool = False):
         """
         Initializes the dataset by loading and merging multiple features.
 
@@ -33,6 +33,12 @@ class FeatureDataset(Dataset):
         self.base_folder_path = base_folder_path
         self.feature_names = feature_names
         self.log_value = log_value
+        
+        self.list_not_load = []
+        if list_not_load is not None:
+            with open(list_not_load, 'r') as f:
+                for line in f:
+                    self.list_not_load.append(line.strip().split('/')[-1].split('.')[0])
 
         # Load data for each feature
         self.feature_data = {}
@@ -40,8 +46,19 @@ class FeatureDataset(Dataset):
             # self.base_folder_path = base_folder_path_unnorm if feature == 'energy' else base_folder_path
             print(f"Loading feature: {feature}")
             data = load_feat(self.base_folder_path, feature_name=feature, log_value=self.log_value)
-            self.feature_data[feature] = data
             print(f"Loaded {len(data)} samples for feature '{feature}'\n")
+            
+            if len(self.list_not_load) > 0:
+                data_clean = []
+                for sample in data:
+                    if sample.get('filename') not in self.list_not_load:
+                        data_clean.append(sample)
+            else:
+                data_clean = data
+                        
+            self.feature_data[feature] = data_clean
+            print(f"del {len(self.list_not_load)} samples for feature '{feature}'\n")
+            print(f"Loaded {len(data_clean)} clean samples for feature '{feature}'\n")
 
         # Merge data across features
         self.merged_data = self._merge_features()
@@ -678,6 +695,7 @@ if __name__ == '__main__':
     features_to_load = config_data["features_to_load"]
     merged_data_pkl = config_data["merged_data_pkl"]
     base_folder = config_data["base_folder"]
+    list_not_load = config_data["list_not_load"]
     # for feat in allfeats:
     
 
@@ -685,6 +703,7 @@ if __name__ == '__main__':
     merged_dataset = FeatureDataset(
         base_folder_path=base_folder,
         feature_names=features_to_load,
+        list_not_load=list_not_load,
     )
 
     # save merged dataset as pcikle
