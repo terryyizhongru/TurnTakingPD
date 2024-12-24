@@ -37,7 +37,7 @@ class FeatureDataset(Dataset):
         # Load data for each feature
         self.feature_data = {}
         for feature in self.feature_names:
-            self.base_folder_path = base_folder_path_unnorm if feature == 'energy' else base_folder_path
+            # self.base_folder_path = base_folder_path_unnorm if feature == 'energy' else base_folder_path
             print(f"Loading feature: {feature}")
             data = load_feat(self.base_folder_path, feature_name=feature, log_value=self.log_value)
             self.feature_data[feature] = data
@@ -664,9 +664,10 @@ def average_metrics(json_path: str) -> Dict[str, any]:
 
 if __name__ == '__main__':
     
+    import sys
     np.set_printoptions(precision=2)
 
-    config_filepath = "config.json"
+    config_filepath = sys.argv[1]
 
     with open(config_filepath, "r") as json_file:
         config_data = json.load(json_file)

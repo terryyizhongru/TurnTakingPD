@@ -12,7 +12,7 @@ from scipy.stats import shapiro, kruskal, kstest, norm, levene
 
 
 
-demo_data_file = '/home/yzhong/gits/TurnTakingPD/demogr_perpp.txt'
+demo_data_file = './nongit/demogr_perpp.txt'
 ID2EMO = {}
 with open(demo_data_file, 'r') as f:
     lines = f.readlines()
@@ -30,9 +30,13 @@ def get_demo(filename):
     group_id = subject_id[:2]
     if group_id not in ['11', '21', '22']:
         raise ValueError(f"Invalid group id {group_id}")
+    # exlude special data
     if subject_id in {'2219', '2123'}:
         return None, None, None
     if subject_id in {'2135'}:
+        return subject_id, group_id, ['NA', 'NA', 'NA', 'NA']
+    if subject_id not in ID2EMO:
+        # print(f'No demo data for {subject_id}')
         return subject_id, group_id, ['NA', 'NA', 'NA', 'NA']
     return subject_id, group_id, ID2EMO[subject_id]
 
@@ -135,6 +139,7 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
     for exp_idx, folder in enumerate(['PictureNaming', 'EarlyLate', 'BoundaryTone']):
         feature_folder = os.path.join(base_folder_path, folder + '-features', feature_name)
         feature_folder = Path(feature_folder)
+        print(feature_folder)
         npy_files = list(feature_folder.glob('*.npy'))
         print(f'Processing {folder} folder...')
         print(f'Found {len(npy_files)} npy files')
@@ -145,7 +150,7 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
             # check if all 0 value
             # if nan in the feature
             if np.isnan(feature).any():
-                print(f'nan in {npy_file}')
+                # print(f'nan in {npy_file}')
                 # remove the nan value
                 feature = feature[~np.isnan(feature)]
                 if len(feature) == 0:
@@ -182,12 +187,11 @@ def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False
             else:
                 raise ValueError('Experiment not found')
             
-            if demo_data[1] == 'NA':
-                continue
+            # if demo_data[1] == 'NA':
+            #     continue
                 
             if YA is False and group_id == '11':
                 continue
-            
             if threeD is True:
                 dim = feature.shape[0]
                 if len(all_data_3D) == 0:

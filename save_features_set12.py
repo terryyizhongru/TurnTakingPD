@@ -22,6 +22,7 @@ class FeatureExtractor:
 
     def extract_features(self, audio_path):
         y, sr = librosa.load(audio_path, sr=self.sr)
+        y_unnormalized = librosa.load(audio_path.replace('_normalized', ''), sr=None)[0]
         
         # # extract mfcc
         # mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
@@ -50,8 +51,8 @@ class FeatureExtractor:
         # voiced_flag = voiced_flag[np.newaxis, :]
         # voiced_probs = voiced_probs[np.newaxis, :]
         energy = np.array([
-            np.sum(np.abs(y[i:i+self.frame_length]**2))
-            for i in range(0, len(y), self.hop_length)
+            np.sum(np.abs(y_unnormalized[i:i+self.frame_length]**2))
+            for i in range(0, len(y_unnormalized), self.hop_length)
         ])
         # f0 = f0[np.newaxis, :]
         # voiced_flag = voiced_flag[np.newaxis, :]
