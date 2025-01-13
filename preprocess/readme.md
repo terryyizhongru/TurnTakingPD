@@ -4,7 +4,7 @@
     output: generate two folder, one with normalization one without
 
 2. cut 2 folder using vad
-    python preprocess/cut_using_vad.py [folder] [folder_normalized]
+    python preprocess/vads/cut_using_vad.py [folder] [folder_normalized]
     output: generate two folder with nosil
 
 3. check_and_filter_length of outlier

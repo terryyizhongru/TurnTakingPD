@@ -89,8 +89,9 @@ for subdir in ['BoundaryTone', 'PictureNaming', 'EarlyLate']:
         clean_id.write(os.path.basename(fn) + '\t' + str(start) + '\n')
         
         if 'normalized' not in outdir:
-            outf = os.path.join(wavoutfolder, os.path.basename(fn))
-            os.system('sox  ' + fn + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
+            fn_unnorm = fn.replace('_normalized', '')
+            outf = os.path.join(wavoutfolder, os.path.basename(fn_unnorm))
+            os.system('sox  ' + fn_unnorm + ' ' + outf + ' trim ' + str((int(start * 100)) / 100)+ ' ' + str((int( (end - start ) * 1000)) / 1000))
 
         if 'normalized' in outdir1:
             outf1 = os.path.join(wavoutfolder1, os.path.basename(fn))
