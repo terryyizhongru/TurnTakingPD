@@ -16,4 +16,4 @@
     output: generate filelist with non-speaker and multispeaker
 
 5. remove error file with list
-    python rm_outlier_wavs.py [folder]
+    python preprocess/rm_outlier_wavs.py [list_to_remove]
