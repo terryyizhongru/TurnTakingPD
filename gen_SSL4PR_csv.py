@@ -3,6 +3,8 @@ import csv
 import random
 import math
 from collections import defaultdict
+import sys
+import numpy as np  # 如果使用了 numpy.random
 
 def get_speaker_id(wav_path):
     """
@@ -40,7 +42,8 @@ def create_folds_for_speakers(speakers, num_folds=10):
     """
     if not speakers:
         return [[] for _ in range(num_folds)]
-        
+    
+    random.seed(42)
     random.shuffle(speakers)
     min_fold_size = max(1, len(speakers) // num_folds)  # Ensure at least 1 speaker per fold
     
@@ -85,7 +88,7 @@ def split_wavs_10fold_balanced(example_wavs, num_folds=10):
     Also includes any other speakers in a separate group.
     Returns a list of (train_wavs, test_wavs) for each fold.
     """
-
+    random.seed(42)
     # Group WAV paths by speaker
     speaker_dict = defaultdict(list)
     for wav in example_wavs:
@@ -249,27 +252,51 @@ def generate_csv(wav_files, output_csv):
             writer.writerow(row)
 
 if __name__ == "__main__":
-    import sys
+    # 在所有随机操作之前设置种子
+    SEED = 42
+    random.seed(SEED)
+    np.random.seed(SEED)
     with open(sys.argv[1], "r") as f:
         all_wavs = f.read().splitlines()
     # remove wav files with "subj-11" in the path
     all_wavs = [wav for wav in all_wavs if "subj-11" not in wav]
+    all_wavs.sort()
     random.shuffle(all_wavs)
 
     # split into folds
     folds = split_wavs_10fold_balanced(all_wavs, num_folds=10)
 
     # create subfolders and generate train.csv / test.csv
-    output_folder = "my_folds"
+    output_folder = sys.argv[1].split('/')[-1] + "_10fold"
+    output_folder_unnorm = sys.argv[1].split('/')[-1] + "_unnorm_10fold"
+    
     os.makedirs(output_folder, exist_ok=True)
     for i, (train_wavs, test_wavs) in enumerate(folds, start=1):
         fold_dir = os.path.join(output_folder, f"TRAIN_TEST_{i}")
+        fold_dir_unnorm = os.path.join(output_folder_unnorm, f"TRAIN_TEST_{i}")
+        
         os.makedirs(fold_dir, exist_ok=True)
+        os.makedirs(fold_dir_unnorm, exist_ok=True)
+        
         train_csv = os.path.join(fold_dir, "train.csv")
         test_csv = os.path.join(fold_dir, "test.csv")
+        train_csv_unnorm = os.path.join(fold_dir_unnorm, "train.csv")
+        test_csv_unnorm = os.path.join(fold_dir_unnorm, "test.csv")
         
         generate_csv(train_wavs, train_csv)
         generate_csv(test_wavs, test_csv)
-        
         print_hc_pd_proportions(train_csv)
         print_hc_pd_proportions(test_csv)
+        
+        if all("all_batch123" in wav for wav in train_wavs):
+            train_wavs = [wav.replace("all_batch123", "all_batch123_unnorm") for wav in train_wavs]
+            test_wavs = [wav.replace("all_batch123", "all_batch123_unnorm") for wav in test_wavs]
+        elif all("new_merged_wavs" in wav for wav in train_wavs):
+            train_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in train_wavs]
+            test_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in test_wavs]
+            
+        generate_csv(train_wavs, train_csv_unnorm)
+        generate_csv(test_wavs, test_csv_unnorm)
+        
+        # print_hc_pd_proportions(train_csv)
+        # print_hc_pd_proportions(test_csv)

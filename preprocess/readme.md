@@ -17,3 +17,12 @@
 
 5. remove error file with list
     python preprocess/rm_outlier_wavs.py [list_to_remove]
+
+
+gen_wavlist.py
+
+rm_practice.py
+
+filter_wavlist.py
+
+=> clean filelist.

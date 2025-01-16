@@ -4,7 +4,7 @@ from pyannote.audio import Pipeline
 def process_all_wavs(folder_path):
     pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        use_auth_token="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")
+        use_auth_token="token")
     
     for root, _, files in os.walk(folder_path):
         for file in files:
@@ -38,5 +38,5 @@ def check_rttm_files(folder_path):
 if __name__ == "__main__":
     import sys
     folder_path = sys.argv[1]
-    #process_all_wavs(folder_path)
+    # process_all_wavs(folder_path)
     check_rttm_files(folder_path)

@@ -3,7 +3,7 @@ import os
 
 
 # add one args for whether normalize or not
-if len(sys.argv) != 3:
+if len(sys.argv) != 2:
     print("Usage: python single_channel.py [folder]")
     sys.exit(1)
 
