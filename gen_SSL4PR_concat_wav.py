@@ -25,12 +25,12 @@ def concat_wavs_by_subject(example_wavs, output_folder, output_txt="merged_wavs.
     os.makedirs(output_folder, exist_ok=True)
 
     with open(output_txt, "w", encoding="utf-8") as f:
-        # For each subject, chunk their wav files in groups of 4
+        # For each subject, chunk their wav files in groups of 5
         for sid, wavlist in subject_dict.items():
-            for i in range(0, len(wavlist), 4):
-                group = wavlist[i:i + 4]
-                # Skip if not enough to form a group of 4
-                if len(group) < 4:
+            for i in range(0, len(wavlist), 5):
+                group = wavlist[i:i + 5]
+                # Skip if not enough to form a group of 5
+                if len(group) < 5:
                     break
                 print("group list:", group)
                 # Concatenate
@@ -40,7 +40,7 @@ def concat_wavs_by_subject(example_wavs, output_folder, output_txt="merged_wavs.
                     combined += audio_part
 
                 # Export the merged file
-                merged_filename = f"subj-{sid}_merged_{i // 4}.wav"
+                merged_filename = f"subj-{sid}_merged_{i // 5}.wav"
                 merged_path = os.path.join(output_folder, merged_filename)
                 combined.export(merged_path, format="wav")
 
@@ -49,14 +49,17 @@ def concat_wavs_by_subject(example_wavs, output_folder, output_txt="merged_wavs.
 
 if __name__ == "__main__":
     # Example usage
+    import sys
     example_wavs = []
-    with open("sync_private/filelists/all_batch123_wavlists_clean.txt", "r") as f:
+    with open(sys.argv[1], "r") as f:
         example_wavs = f.read().splitlines()
     # shuffle the list
+    prefix = sys.argv[1].split("/")[-1].split("_")[0]
     import random
     random.seed(42)
     random.shuffle(example_wavs)
-    concat_wavs_by_subject(example_wavs, output_folder="/data/storage1t/Turntaking/new_merged_wavs", output_txt="merged_wavs.txt")
+    concat_wavs_by_subject(example_wavs, output_folder="/data/storage1t/Turntaking/" + prefix + "new_merged_wavs5", output_txt="splits/" + prefix + "merged_wavs5.txt")
 
-    example_wavs_unnorm = [wav.replace("all_batch123", "all_batch123_unnorm") for wav in example_wavs]
-    concat_wavs_by_subject(example_wavs_unnorm, output_folder="/data/storage1t/Turntaking/new_merged_wavs_unnorm", output_txt="merged_wavs_unnorm.txt")
+    
+    example_wavs_unnorm = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in example_wavs]
+    concat_wavs_by_subject(example_wavs_unnorm, output_folder="/data/storage1t/Turntaking/" + prefix + "new_merged_wavs5_unnorm", output_txt="splits/" + prefix + "merged_wavs5_unnorm.txt")
