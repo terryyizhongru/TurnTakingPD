@@ -85,12 +85,53 @@ def get_hc_pd_stats(train_csv, test_csv, args):
 
     hc_subjects = []
     pd_subjects = []
+    all_subjects = []
     for subj, info in subjects_data.items():
         label = info['label']
         if label == 'hc':
             hc_subjects.append(info)
         elif label == 'pd':
             pd_subjects.append(info)
+        all_subjects.append(info)
+    
+    range_counts = {
+    (54, 65): {'hc': 0, 'pd': 0},
+    (65, 75): {'hc': 0, 'pd': 0},
+    (75, 85): {'hc': 0, 'pd': 0}
+}
+
+    for subj in all_subjects:
+        age_val = subj.get('age', None)
+        label_val = subj.get('label', '')
+        if age_val is not None:
+            for (low, high), counts_dict in range_counts.items():
+                if low <= age_val < high:
+                    if label_val in counts_dict:
+                        counts_dict[label_val] += 1
+
+    print("Age ranges 54-65, 65-75, 75-85 count by label:", range_counts)
+
+    range_counts_5yr = {}
+    start_age, end_age = 54, 84
+    step = 5
+
+    for lower in range(start_age, end_age, step):
+        upper = lower + step
+        if upper == 84:
+            upper = 85
+        range_counts_5yr[(lower, upper)] = {'hc': 0, 'pd': 0}
+
+    for subj in all_subjects:
+        age_val = subj.get('age', None)
+        label_val = subj.get('label', '')
+        if age_val is not None:
+            for (low, high), counts_dict in range_counts_5yr.items():
+                if low <= age_val < high:
+                    if label_val in counts_dict:
+                        counts_dict[label_val] += 1
+
+    print("Age ranges in 5-year steps, from 54 to 85:", range_counts_5yr)
+
 
     def compute_stats(subject_list):
         male_count = sum(1 for s in subject_list if s['sex'] == 'M')
@@ -119,7 +160,7 @@ def main():
     parser.add_argument("--set", choices=["all", "test"], default="all",
                         help="Choose 'all' to aggregate train+test, or 'test' for test only.")
     parser.add_argument("--mode", choices=["all", "one"], default="one",
-                    help="Choose 'all' to aggregate train+test, or 'test' for test only.")
+                    help="Choose 'all' to aggregate all folds, or 'test' for 1 fold.")
     args = parser.parse_args()
 
     all_test_subjects = set()
