@@ -19,6 +19,8 @@ def load_demographics(file_path):
         idx_id = header.index("participantnummer")
         idx_age = header.index("leeftijd")
         idx_sex = header.index("geslacht")
+        idx_romp = header.index("ROMPscore")
+        idx_time = header.index("TimeSinceDiagnosis_months")
         for line in lines[1:]:
             parts = line.split()
             if len(parts) < 3:
@@ -26,7 +28,9 @@ def load_demographics(file_path):
             pid = parts[idx_id]
             age = parts[idx_age]
             sex = parts[idx_sex]
-            demogr[pid] = (age, sex)
+            romp = parts[idx_romp]
+            time = parts[idx_time]
+            demogr[pid] = (age, sex, romp, time)
     return demogr
 
 def measure_audio_features(signal_file):
@@ -80,7 +84,8 @@ def get_hc_pd_stats(train_csv, test_csv, args):
                     subjects_data[subject_id] = {
                         'label': label,
                         'sex': sex,
-                        'age': age
+                        'age': age,
+                        'id': subject_id
                     }
 
     hc_subjects = []
@@ -151,7 +156,20 @@ def get_hc_pd_stats(train_csv, test_csv, args):
             'age_max': age_max
         }
     # print(f"Total unique subjects: {len(subjects_data)}")
+    Romps = []
+    TADs = []
+    def cal_PD_related(subject_list):
+        demo_dict = load_demographics(DEMOGR_FILE)
+        for dict in subject_list:
+            Romps.append(demo_dict.get(dict['id'], ('', '', '', ''))[2])
+            TADs.append(demo_dict.get(dict['id'], ('', '', '', ''))[3])
+        
+        print("PD related info:")
+        print("PD subjects:", len(subject_list))
+        print("average ROMP score:", sum([int(i) for i in Romps if i != ''])/len([int(i) for i in Romps if i != '']))
+        print("average TimeSinceDiagnosis_months:", sum([float(i) for i in TADs if i != ''])/len([float(i) for i in TADs if i != '']))
     
+    cal_PD_related(pd_subjects)
     return compute_stats(hc_subjects), compute_stats(pd_subjects)
 
 def main():
