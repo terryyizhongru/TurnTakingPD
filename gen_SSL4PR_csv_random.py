@@ -252,11 +252,21 @@ def generate_csv(wav_files, output_csv):
             writer.writerow(row)
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate random CSV splits for SSL4PR with optional seed and prefix."
+    )
+    parser.add_argument("input_file", help="Input file containing paths to wav files")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--prefix", type=str, default="", help="Optional prefix (default: empty)")
+    args = parser.parse_args()
+
     # 在所有随机操作之前设置种子
-    SEED = 42
+    SEED = args.seed
     random.seed(SEED)
     np.random.seed(SEED)
-    with open(sys.argv[1], "r") as f:
+    with open(args.input_file, "r") as f:
         all_wavs = f.read().splitlines()
     # remove wav files with "subj-11" in the path
     all_wavs = [wav for wav in all_wavs if "subj-11" not in wav]
@@ -267,8 +277,8 @@ if __name__ == "__main__":
     folds = split_wavs_10fold_balanced(all_wavs, num_folds=10)
 
     # create subfolders and generate train.csv / test.csv
-    output_folder = "splits/" + sys.argv[1].split('/')[-1] + "_10fold"
-    output_folder_unnorm = "splits/" + sys.argv[1].split('/')[-1] + "_unnorm_10fold"
+    output_folder = "sync_private/splits/" + args.input_file.split('/')[-1] + "_10fold" + args.prefix
+    output_folder_unnorm = "sync_private/splits/" + args.input_file.split('/')[-1] + "_unnorm_10fold" + args.prefix
     
     os.makedirs(output_folder, exist_ok=True)
     for i, (train_wavs, test_wavs) in enumerate(folds, start=1):
