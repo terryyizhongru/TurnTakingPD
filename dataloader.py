@@ -15,11 +15,11 @@ from sklearn.metrics import (
 )
 from sklearn.base import BaseEstimator, clone
 
-from load_feat_pd import load_feat  # Ensure this module is in your PYTHONPATH
+from load_feat_pd import load_feat, load_feat_single  # Ensure this module is in your PYTHONPATH
 
 
 class FeatureDataset(Dataset):
-    def __init__(self, base_folder_path: str, feature_names: List[str], list_not_load: str, log_value: bool = False):
+    def __init__(self, base_folder_path: str, feature_names: List[str], list_not_load: str = '', log_value: bool = False, by_exps = True):
         """
         Initializes the dataset by loading and merging multiple features.
 
@@ -35,7 +35,7 @@ class FeatureDataset(Dataset):
         self.log_value = log_value
         
         self.list_not_load = []
-        if list_not_load is not None:
+        if list_not_load != '':
             with open(list_not_load, 'r') as f:
                 for line in f:
                     self.list_not_load.append(line.strip().split('/')[-1].split('.')[0])
@@ -45,7 +45,11 @@ class FeatureDataset(Dataset):
         for feature in self.feature_names:
             # self.base_folder_path = base_folder_path_unnorm if feature == 'energy' else base_folder_path
             print(f"Loading feature: {feature}")
-            data = load_feat(self.base_folder_path, feature_name=feature, log_value=self.log_value)
+            if by_exps:
+                data = load_feat(self.base_folder_path, feature_name=feature, log_value=self.log_value)
+            else:
+                data = load_feat_single(self.base_folder_path, feature_name=feature, log_value=self.log_value)
+
             print(f"Loaded {len(data)} samples for feature '{feature}'\n")
             
             if len(self.list_not_load) > 0:
@@ -682,6 +686,7 @@ def average_metrics(json_path: str) -> Dict[str, any]:
 if __name__ == '__main__':
     
     import sys
+    import pdb
     np.set_printoptions(precision=2)
 
     config_filepath = sys.argv[1]
@@ -703,9 +708,9 @@ if __name__ == '__main__':
     merged_dataset = FeatureDataset(
         base_folder_path=base_folder,
         feature_names=features_to_load,
-        list_not_load=list_not_load,
-    )
+        by_exps=False)
 
+    pdb.set_trace()
     # save merged dataset as pcikle
     with open(merged_data_pkl, 'wb') as f:
         pickle.dump(merged_dataset, f)

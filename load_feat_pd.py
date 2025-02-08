@@ -12,7 +12,7 @@ from scipy.stats import shapiro, kruskal, kstest, norm, levene
 
 
 
-demo_data_file = './nongit/demogr_perpp.txt'
+demo_data_file = 'sync_private/demogr_perpp.txt'
 ID2EMO = {}
 with open(demo_data_file, 'r') as f:
     lines = f.readlines()
@@ -126,7 +126,123 @@ def load_rp():
     
     return all3, exp2lists
 
+from pathlib import Path
+import numpy as np
+import os
 
+# Assume get_demo is already defined somewhere in your code
+# def get_demo(filename_stem): ...
+
+def load_feat_single(base_folder_path, feature_name='energy', log_value=False, YA=False, threeD=False):
+    """
+    Load features from a single folder (instead of multiple experiment subfolders).
+    
+    Parameters:
+        base_folder_path (str): Path to the folder containing .npy feature files.
+        feature_name (str): Feature being loaded (e.g., 'energy', 'f0').
+        log_value (bool): Whether to apply logarithmic transformation on the feature.
+        YA (bool): If False, skip files with group_id '11'.
+        threeD (bool): If True, organize features in 3D (per dimension), otherwise 1D.
+
+    Returns:
+        List of dictionaries with feature data (or a list of lists if threeD is True).
+    """
+    all_data = []
+    all_data_3D = []
+    
+    folder = Path(base_folder_path)
+    feature_folder = Path(os.path.join(base_folder_path, feature_name))
+
+    npy_files = list(feature_folder.glob('*.npy'))
+    print(f'Processing folder: {folder}')
+    print(f'Found {len(npy_files)} npy files')
+
+    cnt = 0  # count files with all zero values
+    for npy_file in npy_files:
+        feature = np.load(npy_file)
+        
+        # Skip or clean files with NaN values
+        if np.isnan(feature).any():
+            feature = feature[~np.isnan(feature)]
+            if len(feature) == 0:
+                print(f'All nan values in {npy_file}')
+                continue
+        
+        # Skip files where all feature values are zeros
+        if np.max(feature) == 0 and np.min(feature) == 0:
+            cnt += 1
+            continue
+
+        # Get demographic information (subject_id, group_id, demo_data)
+        subject_id, group_id, demo_data = get_demo(npy_file.stem)
+        if subject_id is None:
+            continue
+
+        # Specific processing for 'f0'
+        if feature_name == 'f0':
+            feature = feature[feature != 0]
+            feature = feature[feature < 500.0]
+            if feature.shape[0] == 0:
+                print(f'All values larger than 500.0 in {npy_file}')
+                continue
+
+        # Optionally apply log transform
+        if log_value:
+            feature = np.log(feature)
+
+        filename = npy_file.stem
+        experiment = "exp_single"
+        
+        # Determine item from filename: take second field if available, else use filename
+        parts = filename.split('_')
+        item = parts[1] if len(parts) > 1 else filename
+        
+        # Check group filtering (e.g., skip YA if group_id is '11')
+        if YA is False and group_id == '11':
+            continue
+        
+        if threeD:
+            # Each file's feature is expected to be multi-dimensional (e.g., a vector).
+            dim = feature.shape[0]
+            # Initialize list for each dimension on the first file
+            if not all_data_3D:
+                all_data_3D = [[] for _ in range(dim)]
+            for i in range(dim):
+                utt = {
+                    'experiment': experiment,
+                    'group_id': group_id,
+                    'value': feature[i],
+                    'subject_id': subject_id,
+                    'filename': filename,
+                    'item': item,
+                    'age': demo_data[0],
+                    'gender': demo_data[1],
+                    'moca': demo_data[2],
+                    'education': demo_data[3],
+                    'romp': demo_data[4],
+                    'tad': demo_data[5],
+                }
+                all_data_3D[i].append(utt)
+        else:
+            utt = {
+                'experiment': experiment,
+                'group_id': group_id,
+                'value': feature,
+                'subject_id': subject_id,
+                'filename': filename,
+                'item': item,
+                'age': demo_data[0],
+                'gender': demo_data[1],
+                'moca': demo_data[2],
+                'education': demo_data[3],
+                'romp': demo_data[4],
+                'tad': demo_data[5],
+            }
+            all_data.append(utt)
+    
+    print(f'{cnt} files with all 0 values')
+    
+    return all_data_3D if threeD else all_data
 
 
 def load_feat(base_folder_path, feature_name='energy', log_value=False, YA=False, threeD=False):
@@ -743,29 +859,71 @@ def basic_analysis(metadata, featname='shimmer', level='utt', norm=True, log_fea
         res_df_BoundaryTone.to_excel(writer, sheet_name='BoundaryTone')
 
 
-        
+def basic_analysis_single(metadata, featname='shimmer', level='utt', norm=True, log_feat=False):
+    
+
+    df = pd.DataFrame(metadata)
+    print(df)
+    # delete all item in dataframe with group id equal to 11
+    df = df[df['group_id'] != '11']
+    # import pdb; pdb.set_trace()
+    edulist = [2124, 2103, 2108, 2128, 2120, 2114, 2130, 2132]
+    edulist = [str(edu) for edu in edulist]
+    # remove subject in the education list
+    # df = df[~df['subject_id'].isin(edulist)]
+    
+    
+    if level == 'frame':
+        # res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
+        res_df_allexp = pd.DataFrame(all_level_analysis_frame(df))
+        print(res_df_allexp)
+
+
+
+    elif level == 'utt':
+        res_df_allexp = pd.DataFrame(all_level_analysis_utt(df))
+        print(res_df_allexp)
+
+
+    # write all these res to one excel file and one sheet for each experiment
+    logornot = 'log_' if log_feat else ''
+    normornot = 'unnorm_' if norm is False else ''
+    with pd.ExcelWriter('excels/all_level_analysis_' + level + '_' + normornot + logornot + featname + '.xlsx') as writer:
+        res_df_allexp.to_excel(writer, sheet_name='all_exp')
+  
+    
+
+
+
+
 
 if __name__ == '__main__':
+    import sys
+    import json
     
-    base_folder_path = Path('/data/storage500/Turntaking/wavs_single_channel_normalized_nosil') if norm else Path('/data/storage025/Turntaking/wavs_single_channel_nosil')
-
-    featname = 'shimmer'
-
-    level = 'utt'
-    feats2level = {
-        'jitter': 'utt',
-        'shimmer': 'utt',
-        'rp': 'utt',
-        'f0': 'frame',
-        'energy': 'frame'
-    }
-
     np.set_printoptions(precision=2)
-    allfeats = ['jitter', 'shimmer', 'rp', 'f0', 'energy']
+
+    config_filepath = sys.argv[1]
+
+    with open(config_filepath, "r") as json_file:
+        config_data = json.load(json_file)
+
+    feats2level = config_data["feats2level"]
+    allfeats_batch1 = config_data["allfeats_batch1"]
+    allfeats_batch2 = config_data["allfeats_batch2"]
+    features_to_load = config_data["features_to_load"]
+    merged_data_pkl = config_data["merged_data_pkl"]
+    base_folder = config_data["base_folder"]
+    list_not_load = config_data["list_not_load"]
+    # for feat in allfeats:
     # for feat in allfeats:
     
 
     #metadata = load_feat(base_folder_path, feature_name=featname)
-    load_feat(base_folder_path, feature_name='contrast', threeD=True)
-    # basic_analysis(metadata, featname=featname, level=feats2level[featname], norm=False)
+    # load_feat(base_folder_path, feature_name='contrast', threeD=True)
+    for featname in features_to_load:
+        metadata = load_feat_single(base_folder, feature_name=featname)
+        df = pd.DataFrame(metadata)
+   
+        basic_analysis_single(metadata, featname=featname, level=feats2level[featname], norm=False)
     
