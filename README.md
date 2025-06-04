@@ -1,4 +1,12 @@
-# TurnTakingPD
+This repository contains resources for the paper:
+ 
+**"Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers"**  
+by Terry Yi Zhong, Esther Janse, Cristian Tejedor-Garcia, Louis ten Bosch, and Martha Larson
+ 
+📣 _Accepted at [Interspeech 2025](https://www.interspeech2025.org)!_
+ 
+
+## Acknowledgements
 
 Part of the project Responsible AI for Voice Diagnostics (RAIVD) with file number NGF.1607.22.013 of the research program NGF AiNed Fellowship Grants, which is financed by the Dutch Research Council (NWO). This work was conducted in close collaboration with the project “Turn-taking in Dialogue in Populations with Communicative Impairment” (https://www.ru.nl/en/research/research-projects/turntakingin-dialogue-in-populations-with-communicative-impairment). This work used the Dutch national e-infrastructure with the support of the SURF Cooperative using grant no. EINF-10519.
 
@@ -11,16 +19,24 @@ Speech-based Parkinson’s disease (PD) detection has gained attention for its a
 ---
 
 ## Citation
-
+ 
 If you use this dataset or methods from this project in academic work, please cite:
-
+ 
+### 📄 LaTeX (BibTeX)
 ```bibtex
 @misc{zhong2025evaluatingusefulnessnondiagnosticspeech,
-  title        = {Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers},
-  author       = {Terry Yi Zhong and Esther Janse and Cristian Tejedor-Garcia and Louis ten Bosch and Martha Larson},
-  year         = {2025},
-  eprint       = {2505.18722},
-  archivePrefix= {arXiv},
-  primaryClass = {eess.AS},
-  url          = {https://arxiv.org/abs/2505.18722},
+  title={Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers}, 
+  author={Terry Yi Zhong and Esther Janse and Cristian Tejedor-Garcia and Louis ten Bosch and Martha Larson},
+  year={2025},
+  eprint={2505.18722},
+  archivePrefix={arXiv},
+  primaryClass={eess.AS},
+  url={https://doi.org/10.48550/arXiv.2505.18722}
 }
+```
+
+## 📚 APA
+Zhong, T. Y., Janse, E., Tejedor-Garcia, C., ten Bosch, L., & Larson, M. (2025). Evaluating the usefulness of non-diagnostic speech data for developing Parkinson's disease classifiers. arXiv. https://arxiv.org/abs/2505.18722
+Accepted at Interspeech 2025.
+ 
+ 
