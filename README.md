@@ -12,6 +12,13 @@ Part of the project Responsible AI for Voice Diagnostics (RAIVD) with file numbe
 
 ---
 
+## Usage
+
+This repository includes all preprocessing and visualization scripts.
+For model training, we follow exactly the same procedure as in the SSL4PR project: https://github.com/K-STMLab/SSL4PR/tree/main
+
+---
+
 ## Abstract
 
 Speech-based Parkinson’s disease (PD) detection has gained attention for its automated, cost-effective, and non-intrusive nature. As research studies usually rely on data from diagnostic-oriented speech tasks, this work explores the feasibility of diagnosing PD on the basis of speech data not originally intended for diagnostic purposes, using the Turn-Taking (TT) dataset. Our findings indicate that TT can be as useful as diagnostic-oriented PD datasets like PC-GITA. We also investigate which specific dataset characteristics impact PD classification performance. The results show that concatenating audio recordings and balancing participants’ gender and status distributions can be beneficial. Cross-dataset evaluation reveals that models trained on PC-GITA generalize poorly to TT, whereas models trained on TT perform better on PC-GITA. Furthermore, we provide insights into the high variability across folds, which is mainly due to large differences in individual speaker performance.
