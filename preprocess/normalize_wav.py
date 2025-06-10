@@ -13,4 +13,3 @@ for subf in ['BoundaryTone', 'EarlyLate', 'PictureNaming']:
     for fn in wav_files:
         outf = os.path.join(out_folder, fn.split('/')[-1])
         os.system('sox --norm=-0.445 ' + fn + ' ' + outf)
-      

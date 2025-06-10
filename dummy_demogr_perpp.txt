@@ -1,0 +1,3 @@
+participantnummer	leeftijd	geslacht	MOCA	opleiding	ROMPscore	TimeSinceDiagnosis_months
+2101	60	V	20	5	NA	NA
+2201	70	M	20	5	10	10

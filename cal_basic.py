@@ -9,7 +9,14 @@ from scipy.io import wavfile
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 
-DEMOGR_FILE = "/home/yzhong/gits/TurnTakingPD/sync_private/demogr_perpp.txt"
+'''
+#The dataset is not released yet. 
+#The format of the demographics file:
+participantnummer       leeftijd        geslacht        MOCA    opleiding       ROMPscore       TimeSinceDiagnosis_months
+0001    0      M       NA      NA      NA      NA
+'''
+DEMOGR_FILE = "dummy_demogr_perpp.txt"
+
 
 def load_demographics(file_path):
     demogr = {}

@@ -17,6 +17,44 @@ Part of the project Responsible AI for Voice Diagnostics (RAIVD) with file numbe
 This repository includes all preprocessing and visualization scripts.
 For model training, we follow exactly the same procedure as in the SSL4PR project: https://github.com/K-STMLab/SSL4PR/tree/main
 
+
+### Preprocessing scripts:
+
+
+1. single channel and normalize, with normalization and without
+    python preprocess/single_channel_normalize.py [folder]
+    output: generate two folder, one with normalization one without
+
+2. cut 2 folder using vad
+    python preprocess/vads/cut_using_vad.py [folder] [folder_normalized]
+    output: generate two folder with nosil
+
+3. check_and_filter_length of outlier
+    python preprocess/check_and_filter_length.py [folder]
+    output: generate filelist with error length
+
+4. (optional) spk_diarization.py
+    python preprocess/spk_diarization.py [folder]
+    output: generate filelist with non-speaker and multispeaker
+
+5. remove error file with list
+    python preprocess/rm_outlier_wavs.py [list_to_remove]
+
+
+gen_wavlist.py
+
+rm_practice.py
+
+filter_wavlist.py
+
+=> clean filelist.
+
+
+Script to calculate basic statistics of the training set:
+  python cal_basic.py dummy_splits/TRAIN_TEST_1
+
+
+
 ---
 
 ## Abstract
