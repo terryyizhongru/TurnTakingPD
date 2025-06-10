@@ -58,8 +58,8 @@ if __name__ == "__main__":
     import random
     random.seed(42)
     random.shuffle(example_wavs)
-    concat_wavs_by_subject(example_wavs, output_folder="/data/storage1t/Turntaking/" + prefix + "new_merged_wavs_BT", cat_num=3, output_txt="sync_private/splits/" + prefix + "merged_wavs_BT.txt")
+    concat_wavs_by_subject(example_wavs, output_folder="wavfolders/" + prefix + "merged_wavs", cat_num=3, output_txt="./" + prefix + "merged_wavs_list.txt")
 
     
-    example_wavs_unnorm = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in example_wavs]
-    concat_wavs_by_subject(example_wavs_unnorm, output_folder="/data/storage1t/Turntaking/" + prefix + "new_merged_wavs_BT_unnorm", cat_num=3, output_txt="sync_private/splits/" + prefix + "merged_wavs_BT_unnorm.txt")
+    # example_wavs_unnorm = [wav.replace(foldername, foldername + "_unnorm") for wav in example_wavs]
+    # concat_wavs_by_subject(example_wavs_unnorm, output_folder="wavfolders/" + prefix + "merged_wavs_unnorm", cat_num=3, output_txt="sync_private/splits/" + prefix + "merged_wavs_list_unnorm.txt")

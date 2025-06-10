@@ -4,42 +4,7 @@ import random
 import math
 from collections import defaultdict
 import sys
-import numpy as np  # 如果使用了 numpy.random
-
-
-
-DEMOGR_FILE = "/home/yzhong/gits/TurnTakingPD/sync_private/demogr_perpp.txt"
-
-def load_demographics(file_path):
-    demogr = {}
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.read().splitlines()
-        header = lines[0].split()
-        idx_id = header.index("participantnummer")
-        idx_age = header.index("leeftijd")
-        idx_sex = header.index("geslacht")
-        for line in lines[1:]:
-            parts = line.split()
-            if len(parts) < 3:
-                continue
-            pid = parts[idx_id]
-            age = parts[idx_age]
-            sex = parts[idx_sex]
-            sex = sex if sex == "M" else "F"
-            demogr[pid] = (age, sex)
-    return demogr
-
-def group_speakers_by_status_and_sex(speaker_dict, demogr):
-    groups = {
-        'hc': {'M': [], 'F': []},
-        'pd': {'M': [], 'F': []}
-    }
-    for speaker_id, wavs in speaker_dict.items():
-        status = 'pd' if speaker_id.startswith('22') else 'hc'
-        sex = demogr.get(speaker_id, ('', 'M'))[1]  # Default to 'M' if not found
-        groups[status][sex].append(speaker_id)
-    return groups
-
+import numpy as np 
 
 def get_speaker_id(wav_path):
     """
@@ -117,106 +82,109 @@ def create_folds_for_speakers(speakers, num_folds=10):
 #         folds.append(fold_speakers)
 #     return folds
 
-# def split_wavs_10fold_balanced(example_wavs, num_folds=10):
-#     """
-#     Splits WAVs into 10 folds, trying to balance speakers whose IDs start with '21' and '22'.
-#     Also includes any other speakers in a separate group.
-#     Returns a list of (train_wavs, test_wavs) for each fold.
-#     """
-#     random.seed(42)
-#     # Group WAV paths by speaker
-#     speaker_dict = defaultdict(list)
-#     for wav in example_wavs:
-#         sid = get_speaker_id(wav)
-#         speaker_dict[sid].append(wav)
-
-#     # Partition speakers by prefix
-#     speakers_21, speakers_22, speakers_others = partition_speakers_by_prefix(list(speaker_dict.keys()))
-
-#     # Create folds independently for each group
-#     folds_21 = create_folds_for_speakers(speakers_21, num_folds=num_folds)
-#     folds_22 = create_folds_for_speakers(speakers_22, num_folds=num_folds)
-#     folds_others = create_folds_for_speakers(speakers_others, num_folds=num_folds)
-
-#     # Combine folds from each group index
-#     folds = []
-#     for i in range(num_folds):
-#         test_speakers_21 = folds_21[i] if i < len(folds_21) else []
-#         test_speakers_22 = folds_22[i] if i < len(folds_22) else []
-#         test_speakers_others = folds_others[i] if i < len(folds_others) else []
-#         test_speakers = test_speakers_21 + test_speakers_22 + test_speakers_others
-
-#         # Train speakers are everything not in the test fold
-#         train_speakers = (
-#             set(speaker_dict.keys())
-#             - set(test_speakers)
-#         )
-
-#         # Convert speaker IDs to WAV paths
-#         test_wavs = []
-#         for sp in test_speakers:
-#             test_wavs.extend(speaker_dict[sp])
-#         train_wavs = []
-#         for sp in train_speakers:
-#             train_wavs.extend(speaker_dict[sp])
-
-#         folds.append((train_wavs, test_wavs))
-
-#     return folds
-import copy
-
 def split_wavs_10fold_balanced(example_wavs, num_folds=10):
+    """
+    Splits WAVs into 10 folds, trying to balance speakers whose IDs start with '21' and '22'.
+    Also includes any other speakers in a separate group.
+    Returns a list of (train_wavs, test_wavs) for each fold.
+    """
     random.seed(42)
+    # Group WAV paths by speaker
     speaker_dict = defaultdict(list)
     for wav in example_wavs:
         sid = get_speaker_id(wav)
         speaker_dict[sid].append(wav)
 
-    demogr = load_demographics(DEMOGR_FILE)
-    original_grouped_speakers = group_speakers_by_status_and_sex(speaker_dict, demogr)
-    available_grouped_speakers = copy.deepcopy(original_grouped_speakers)
+    # Partition speakers by prefix
+    speakers_21, speakers_22, speakers_others = partition_speakers_by_prefix(list(speaker_dict.keys()))
 
+    # Create folds independently for each group
+    folds_21 = create_folds_for_speakers(speakers_21, num_folds=num_folds)
+    folds_22 = create_folds_for_speakers(speakers_22, num_folds=num_folds)
+    folds_others = create_folds_for_speakers(speakers_others, num_folds=num_folds)
+
+    # Combine folds from each group index
     folds = []
-    add1 = {}
-    for fo in range(num_folds):
-        print("fold: ", fo+1)
-        grouped_speakers = copy.deepcopy(original_grouped_speakers)
-        test_speakers = []
-        for status in ['hc', 'pd']:
-            for sex in ['M', 'F']:
-                if len(available_grouped_speakers[status][sex]) >= 2:
-                    available_speakers = available_grouped_speakers[status][sex]
-                    print(len(available_speakers), status, sex)
-                elif len(available_grouped_speakers[status][sex]) == 1:
-    
-                    available_speakers = available_grouped_speakers[status][sex]
-                    print(len(available_speakers), status, sex)
-                    while len(add1) == 0 or add1[0] in available_speakers:
-                        add1 = random.sample(grouped_speakers[status][sex], 1)
-                    available_speakers.extend(add1)
-                    add1 = {}
-                    print(len(available_speakers), status, sex)
-                else:
-                    available_speakers = grouped_speakers[status][sex]
-                num_to_select = min(2, len(available_speakers))
-                selected = random.sample(available_speakers, num_to_select)
-                test_speakers.extend(selected)
-                
-                if len(available_grouped_speakers[status][sex]) >= 1:
-                    for sp in selected:
-                        available_grouped_speakers[status][sex].remove(sp) 
-                        
-        train_speakers = [sp for group in grouped_speakers.values() for subgroup in group.values() for sp in subgroup if sp not in test_speakers]
+    for i in range(num_folds):
+        test_speakers_21 = folds_21[i] if i < len(folds_21) else []
+        test_speakers_22 = folds_22[i] if i < len(folds_22) else []
+        test_speakers_others = folds_others[i] if i < len(folds_others) else []
+        test_speakers = test_speakers_21 + test_speakers_22 + test_speakers_others
 
-        print([[sp, demogr.get(sp, ('', ''))] for sp in test_speakers])
-            
-        test_wavs = [wav for sp in test_speakers for wav in speaker_dict[sp]]
-        train_wavs = [wav for sp in train_speakers for wav in speaker_dict[sp]]
+        # Train speakers are everything not in the test fold
+        train_speakers = (
+            set(speaker_dict.keys())
+            - set(test_speakers)
+        )
+
+        # Convert speaker IDs to WAV paths
+        test_wavs = []
+        for sp in test_speakers:
+            test_wavs.extend(speaker_dict[sp])
+        train_wavs = []
+        for sp in train_speakers:
+            train_wavs.extend(speaker_dict[sp])
 
         folds.append((train_wavs, test_wavs))
 
     return folds
 
+# def split_wavs_10fold(example_wavs, num_folds=10):
+#     """
+#     Splits wavs into 10 folds based on speaker ID, ensuring speaker separation
+#     between train and test sets.
+#     Returns a list of tuples (train_wavs, test_wavs) for each fold.
+#     """
+
+#     # Group wavs by speaker
+#     speaker_dict = {}
+#     for wav in example_wavs:
+#         sid = get_speaker_id(wav)
+#         speaker_dict.setdefault(sid, []).append(wav)
+
+#     # Shuffle speaker IDs
+#     all_speakers = list(speaker_dict.keys())
+#     random.shuffle(all_speakers)
+
+#     # Create folds of speaker IDs
+#     fold_size = math.ceil(len(all_speakers) / num_folds)
+#     folds = []
+#     for i in range(num_folds):
+#         test_speakers = all_speakers[i * fold_size : (i + 1) * fold_size]
+#         train_speakers = [s for s in all_speakers if s not in test_speakers]
+
+#         # Collect wav paths
+#         test_wavs = []
+#         for s in test_speakers:
+#             test_wavs.extend(speaker_dict[s])
+
+#         train_wavs = []
+#         for s in train_speakers:
+#             train_wavs.extend(speaker_dict[s])
+
+#         folds.append((train_wavs, test_wavs))
+
+#     return folds
+
+DEMOGR_FILE = "dummy_demogr_perpp.txt"
+
+def load_demographics(file_path):
+    demogr = {}
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.read().splitlines()
+        header = lines[0].split()
+        idx_id = header.index("participantnummer")
+        idx_age = header.index("leeftijd")
+        idx_sex = header.index("geslacht")
+        for line in lines[1:]:
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            pid = parts[idx_id]
+            age = parts[idx_age]
+            sex = parts[idx_sex]
+            demogr[pid] = (age, sex)
+    return demogr
 
 def print_hc_pd_proportions(csv_file):
     hc_count, pd_count, total = 0, 0, 0
@@ -266,7 +234,7 @@ def generate_csv(wav_files, output_csv):
                 age, sex = demogr[speaker_id]
             else:
                 age, sex = "", ""
-            sex = "M" if sex == "M" else "F"
+            sex = "F" if sex == "V" else "M"
             age = "" if age == "NA" else age
             row = [
                 original_id,
@@ -284,11 +252,20 @@ def generate_csv(wav_files, output_csv):
             writer.writerow(row)
 
 if __name__ == "__main__":
-    # 在所有随机操作之前设置种子
-    SEED = 42
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate random CSV splits for SSL4PR with optional seed and prefix."
+    )
+    parser.add_argument("input_file", help="Input file containing paths to wav files")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument("--prefix", type=str, default="", help="Optional prefix (default: empty)")
+    args = parser.parse_args()
+
+    SEED = args.seed
     random.seed(SEED)
     np.random.seed(SEED)
-    with open(sys.argv[1], "r") as f:
+    with open(args.input_file, "r") as f:
         all_wavs = f.read().splitlines()
     # remove wav files with "subj-11" in the path
     all_wavs = [wav for wav in all_wavs if "subj-11" not in wav]
@@ -299,8 +276,8 @@ if __name__ == "__main__":
     folds = split_wavs_10fold_balanced(all_wavs, num_folds=10)
 
     # create subfolders and generate train.csv / test.csv
-    output_folder = "splits/" + sys.argv[1].split('/')[-1] + "_10fold"
-    output_folder_unnorm = "splits/" + sys.argv[1].split('/')[-1] + "_unnorm_10fold"
+    output_folder = "sync_private/splits/" + args.input_file.split('/')[-1] + "_10fold" + args.prefix
+    output_folder_unnorm = "sync_private/splits/" + args.input_file.split('/')[-1] + "_unnorm_10fold" + args.prefix
     
     os.makedirs(output_folder, exist_ok=True)
     for i, (train_wavs, test_wavs) in enumerate(folds, start=1):
@@ -321,15 +298,15 @@ if __name__ == "__main__":
         print_hc_pd_proportions(test_csv)
         
 
-        if all("new_merged_wavs" in wav for wav in train_wavs):
-            train_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in train_wavs]
-            test_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in test_wavs]
-        elif all("all_batch1234" in wav for wav in train_wavs):
-            train_wavs = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in train_wavs]
-            test_wavs = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in test_wavs]
+        # if all("new_merged_wavs" in wav for wav in train_wavs):
+        #     train_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in train_wavs]
+        #     test_wavs = [wav.replace("new_merged_wavs", "new_merged_wavs_unnorm") for wav in test_wavs]
+        # elif all("all_batch1234" in wav for wav in train_wavs):
+        #     train_wavs = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in train_wavs]
+        #     test_wavs = [wav.replace("all_batch1234", "all_batch1234_unnorm") for wav in test_wavs]
             
-        generate_csv(train_wavs, train_csv_unnorm)
-        generate_csv(test_wavs, test_csv_unnorm)
+        # generate_csv(train_wavs, train_csv_unnorm)
+        # generate_csv(test_wavs, test_csv_unnorm)
         
         # print_hc_pd_proportions(train_csv)
         # print_hc_pd_proportions(test_csv)
