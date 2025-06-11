@@ -19,7 +19,6 @@ This repository includes all preprocessing and visualization scripts.
 
 ### Preprocessing scripts:
 
-
 1. single channel and normalize, with normalization and without
     python preprocess/single_channel_normalize.py [folder]
     output: generate two folder, one with normalization one without
@@ -52,11 +51,38 @@ Preprocess finished.
 (Optional) Script to calculate basic statistics of the training set:
     python cal_basic.py dummy_splits/TRAIN_TEST_1
 
+
 ### Training
+
 For model training, we follow exactly the same procedure as in the SSL4PR project: https://github.com/K-STMLab/SSL4PR/tree/main
 
 
-### Validation & Visualization
+
+### Validation 
+
+[modified implementation:](https://github.com/terryyizhongru/SSL4PR)
+
+Modifications:
+1. Fixed AUC-ROC Computation 
+   - Corrected an error in the AUC-ROC calculation to ensure accurate metric reporting.
+
+2. Added `eval.py` for more convenient Evaluation
+   - Generates detailed performance reports, including by_speaker, by_gender performance metrics
+   - Configure via `W_config_eval.yaml`:
+     ```yaml
+     by_speaker: true  
+     by_gender:  false  
+     ```
+   - Supported datasets: pcgita, TurnTaking
+
+3.  Updated data loader to support TurnTaking Dataset  
+
+
+### Visualization
+
+- The code for the two paper figures is available in the `visualization` directory:  
+    - `visualization/plot1.ipynb`  
+    - `visualization/plot2.ipynb`
 
 
 ---
