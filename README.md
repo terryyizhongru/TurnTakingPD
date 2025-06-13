@@ -83,7 +83,7 @@ For model training, we follow exactly the same procedure as in the SSL4PR projec
 
 ### Validation 
 
-[modified implementation:](https://github.com/terryyizhongru/SSL4PR)
+[modified implementation repo](https://github.com/terryyizhongru/SSL4PR)
 
 Modifications:
 1. Fixed AUC-ROC Computation 
