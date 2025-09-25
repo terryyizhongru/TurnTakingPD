@@ -3,7 +3,7 @@ This repository contains resources for the paper:
 **"Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers"**  
 by Terry Yi Zhong, Esther Janse, Cristian Tejedor-Garcia, Louis ten Bosch, and Martha Larson
  
-📣 _Accepted at [Interspeech 2025](https://www.interspeech2025.org)!_
+📣 _Accepted at [Interspeech 2025]([https://www.interspeech2025.org](https://www.isca-archive.org/interspeech_2025/zhong25b_interspeech.html))!_
 
 ## Abstract
 
@@ -115,19 +115,18 @@ If you use this dataset or methods from this project in academic work, please ci
  
 ### 📄 LaTeX (BibTeX)
 ```bibtex
-@misc{zhong2025evaluatingusefulnessnondiagnosticspeech,
-  title={Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers}, 
-  author={Terry Yi Zhong and Esther Janse and Cristian Tejedor-Garcia and Louis ten Bosch and Martha Larson},
-  year={2025},
-  eprint={2505.18722},
-  archivePrefix={arXiv},
-  primaryClass={eess.AS},
-  url={https://doi.org/10.48550/arXiv.2505.18722}
+@inproceedings{zhong25b_interspeech,
+  title     = {{Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers}},
+  author    = {Terry Yi Zhong and Esther Janse and Cristian Tejedor-Garcia and Louis ten Bosch and Martha Larson},
+  year      = {2025},
+  booktitle = {{Interspeech 2025}},
+  pages     = {3738--3742},
+  doi       = {10.21437/Interspeech.2025-1805},
+  issn      = {2958-1796},
 }
 ```
 
 ## 📚 APA
-Zhong, T. Y., Janse, E., Tejedor-Garcia, C., ten Bosch, L., & Larson, M. (2025). Evaluating the usefulness of non-diagnostic speech data for developing Parkinson's disease classifiers. arXiv. https://arxiv.org/abs/2505.18722
-Accepted at Interspeech 2025.
+Zhong, T.Y., Janse, E., Tejedor-Garcia, C., Bosch, L.t., Larson, M. (2025) Evaluating the Usefulness of Non-Diagnostic Speech Data for Developing Parkinson's Disease Classifiers. Proc. Interspeech 2025, 3738-3742, doi: 10.21437/Interspeech.2025-1805
  
  
